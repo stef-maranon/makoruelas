@@ -45,6 +45,24 @@
   #qr { margin-top:16px; display:inline-block; padding:12px; background:#fff; border:1px solid var(--linea); border-radius:12px; }
   code { background:#f0ebe3; padding:2px 6px; border-radius:6px; }
   .oculto { display:none !important; }
+  .editor { display:grid; grid-template-columns:minmax(200px, 300px) 1fr; gap:18px; grid-column:1/-1; margin-top:6px; }
+  @media (max-width:640px) { .editor { grid-template-columns:1fr; } }
+  .escenario { position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:10px; touch-action:none;
+    cursor:grab; background:repeating-conic-gradient(#e7e1d8 0 25%, #fff 0 50%) 0 0/16px 16px; }
+  .escenario:active { cursor:grabbing; }
+  .escenario .capa-prev { position:absolute; inset:0; }
+  .escenario video { position:absolute; left:50%; top:50%; max-width:none; pointer-events:none; }
+  .escenario img.calco { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; }
+  .escenario .borde { position:absolute; inset:0; border:2px solid var(--acento); border-radius:10px; pointer-events:none; }
+  .escenario .vacio { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:16px;
+    color:var(--suave); font-size:13px; }
+  .grupo { border-top:1px solid var(--linea); padding-top:10px; margin-top:10px; }
+  .grupo:first-child { border-top:0; padding-top:0; margin-top:0; }
+  .grupo h4 { margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--suave); }
+  .botones { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .rango { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .rango input { flex:1; }
+  .rango span { min-width:46px; text-align:right; font-variant-numeric:tabular-nums; }
   .quitar { color:#b42318; background:none; border:0; font-weight:600; }
 </style>
 </head>
@@ -71,6 +89,14 @@
     <div style="margin-top:12px">
       <label for="descripcion">Mensaje de bienvenida (opcional)</label>
       <input type="text" id="descripcion" placeholder="Apunta tu cámara a cualquier obra de la sala.">
+    </div>
+    <div style="margin-top:12px">
+      <label for="seguimiento">Seguimiento al mover la foto</label>
+      <select id="seguimiento">
+        <option value="rapido">Rápido: sigue la foto al instante (recomendado)</option>
+        <option value="equilibrado">Equilibrado</option>
+        <option value="suave">Suave: más estable pero con retraso</option>
+      </select>
     </div>
   </section>
 
@@ -155,7 +181,7 @@ function campo(etiqueta, input, ayuda) {
 
 function agregarFoto() {
   const id = ++contador;
-  const foto = { id, archivo: null, capas: [] };
+  const foto = { id, archivo: null, capas: [], aspecto: 4 / 3, url: null, alCambiar: [] };
   fotos.push(foto);
 
   const vista = el('div', { class: 'vacia' }, 'Sin foto');
@@ -167,9 +193,16 @@ function agregarFoto() {
   inputFoto.addEventListener('change', () => {
     foto.archivo = inputFoto.files[0] || null;
     if (foto.archivo) {
-      const img = el('img', { src: URL.createObjectURL(foto.archivo), alt: '' });
-      vista.replaceWith(img);
+      foto.url = URL.createObjectURL(foto.archivo);
+      const img = el('img', { src: foto.url, alt: '' });
+      (foto.vista || vista).replaceWith(img);
       foto.vista = img;
+      const probe = new Image();
+      probe.onload = () => {
+        foto.aspecto = probe.naturalHeight / probe.naturalWidth;
+        foto.alCambiar.forEach((fn) => fn());
+      };
+      probe.src = foto.url;
     }
   });
 
@@ -204,6 +237,7 @@ function agregarCapa(foto, tipo, contenedor) {
     const aviso = el('div', { class: 'aviso' });
     f.addEventListener('change', () => {
       capa.archivo = f.files[0] || null;
+      if (capa.alArchivo) capa.alArchivo();
       const mb = capa.archivo ? capa.archivo.size / 1048576 : 0;
       const limite = tipo === 'video' ? 25 : tipo === 'modelo' ? 15 : 10;
       aviso.textContent = mb > limite
@@ -231,30 +265,7 @@ function agregarCapa(foto, tipo, contenedor) {
     return campo(etiqueta, i);
   };
 
-  if (tipo === 'video') {
-    cuerpo.append(
-      num('ancho', 'Ancho (1 = ancho de la foto)', 1, 0.05, 'El alto se ajusta solo a la proporción del video.'),
-      num('frente', 'Separación de la foto', 0, 0.01));
-    o.quitarFondo = 'ninguno';
-    const selFondo = el('select', {},
-      el('option', { value: 'ninguno' }, 'No, mostrar el video completo'),
-      el('option', { value: 'negro' }, 'Quitar fondo negro'),
-      el('option', { value: 'verde' }, 'Quitar fondo verde (pantalla verde)'),
-      el('option', { value: 'azul' }, 'Quitar fondo azul'));
-    selFondo.addEventListener('change', () => { o.quitarFondo = selFondo.value; });
-    o.emerger = 'no';
-    const selEmerger = el('select', {},
-      el('option', { value: 'no' }, 'No, el video queda sobre la foto'),
-      el('option', { value: 'mesa' }, 'Sí, se levanta de pie (foto sobre mesa)'),
-      el('option', { value: 'pared' }, 'Sí, sale inclinado (foto en la mano o pared)'),
-      el('option', { value: 'flotar' }, 'Sí, flota hacia la cámara (paralelo a la foto)'));
-    selEmerger.addEventListener('change', () => { o.emerger = selEmerger.value; });
-    cuerpo.append(
-      campo('Efecto "sale de la foto"', selEmerger, 'Se despliega como un libro pop-up al escanear.'),
-      campo('Fondo transparente', selFondo, 'Hace que el contenido parezca salir de la foto.'),
-      num('tolerancia', 'Intensidad del recorte', 0.1, 0.02, 'Súbelo si queda borde; bájalo si se borra de más.'),
-      el('div', {}, chk('repetir', 'Repetir en bucle', true), chk('reiniciar', 'Empezar desde el inicio cada vez', false)));
-  }
+  if (tipo === 'video') editorVideo(foto, capa, o, cuerpo, chk);
   if (tipo === 'audio') {
     cuerpo.append(
       num('volumen', 'Volumen (0 a 1)', 1, 0.1),
@@ -287,6 +298,194 @@ function agregarCapa(foto, tipo, contenedor) {
         foto.capas.splice(foto.capas.indexOf(capa), 1); caja.remove(); } }, 'Quitar')),
     cuerpo);
   contenedor.appendChild(caja);
+}
+
+
+/* ---------- Editor de video con vista previa ---------- */
+// Zona visible del video (ya girado) cuando se encuadra dentro de la foto. Devuelve [izq, arriba, der, abajo] de 0 a 1.
+function calcularRecorte(o, vw, vh, aspecto) {
+  const W = 1, H = aspecto;
+  const girado = o.giro % 180 !== 0;
+  const ew = girado ? vh : vw, eh = girado ? vw : vh;
+  const s = Math.max(W / ew, H / eh) * o.zoom;
+  const Dw = ew * s, Dh = eh * s;
+  const izq = W / 2 + o.x * W - Dw / 2, arriba = H / 2 + o.y * H - Dh / 2;
+  const r = (n) => Math.round(n * 10000) / 10000;
+  return [r(-izq / Dw), r(-arriba / Dh), r((W - izq) / Dw), r((H - arriba) / Dh)];
+}
+
+function editorVideo(foto, capa, o, cuerpo, chk) {
+  Object.assign(o, { zoom: 1, x: 0, y: 0, giro: 0, inicio: 0, fin: null, velocidad: 1, alFinal: 'repetir',
+    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, calco: 0.35 });
+
+  // Vista previa: tiene la forma exacta de la foto
+  const vid = el('video', { playsinline: true, loop: true });
+  vid.muted = true;
+  const capaPrev = el('div', { class: 'capa-prev' }, vid);
+  const calco = el('img', { class: 'calco', alt: '' });
+  const vacio = el('div', { class: 'vacio' }, 'Sube la foto y el video para acomodarlo aquí');
+  const escenario = el('div', { class: 'escenario' }, capaPrev, calco, el('div', { class: 'borde' }), vacio);
+
+  const ajustarForma = () => {
+    escenario.style.aspectRatio = `1 / ${foto.aspecto}`;
+    if (foto.url) { calco.src = foto.url; calco.style.display = ''; } else calco.style.display = 'none';
+    calco.style.opacity = o.calco;
+    actualizar();
+  };
+  foto.alCambiar.push(ajustarForma);
+
+  function actualizar() {
+    const vw = vid.videoWidth, vh = vid.videoHeight;
+    vacio.style.display = vw ? 'none' : '';
+    if (!vw) return;
+    const W = escenario.clientWidth, H = escenario.clientHeight;
+    const girado = o.giro % 180 !== 0;
+    const ew = girado ? vh : vw, eh = girado ? vw : vh;
+    const sc = Math.max(W / ew, H / eh) * o.zoom;
+    vid.style.width = vw * sc + 'px';
+    vid.style.height = vh * sc + 'px';
+    vid.style.transform = `translate(-50%, -50%) translate(${o.x * W}px, ${o.y * H}px) rotate(${o.giro}deg)`;
+    vid.playbackRate = o.velocidad;
+  }
+  new ResizeObserver(actualizar).observe(escenario);
+
+  // Arrastrar para mover, rueda del ratón para zoom
+  let arrastre = null;
+  escenario.addEventListener('pointerdown', (e) => {
+    arrastre = { x: e.clientX, y: e.clientY };
+    escenario.setPointerCapture(e.pointerId);
+  });
+  escenario.addEventListener('pointermove', (e) => {
+    if (!arrastre) return;
+    o.x += (e.clientX - arrastre.x) / escenario.clientWidth;
+    o.y += (e.clientY - arrastre.y) / escenario.clientHeight;
+    arrastre = { x: e.clientX, y: e.clientY };
+    actualizar();
+  });
+  escenario.addEventListener('pointerup', () => { arrastre = null; });
+  escenario.addEventListener('pointercancel', () => { arrastre = null; });
+  escenario.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    o.zoom = Math.min(4, Math.max(0.2, o.zoom * (1 - e.deltaY * 0.001)));
+    zoom.value = o.zoom; actualizar();
+  }, { passive: false });
+
+  // Controles: encuadre
+  const zoom = el('input', { type: 'range', min: 0.2, max: 4, step: 0.01, value: 1 });
+  zoom.addEventListener('input', () => { o.zoom = Number(zoom.value); actualizar(); });
+  const calcoR = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: o.calco });
+  calcoR.addEventListener('input', () => { o.calco = Number(calcoR.value); calco.style.opacity = o.calco; });
+  const girar = (d) => { o.giro = (o.giro + d + 360) % 360; actualizar(); };
+  const ajustar = (modo) => {
+    o.x = 0; o.y = 0;
+    if (modo === 'cubrir') o.zoom = 1;
+    else {
+      const girado = o.giro % 180 !== 0;
+      const ew = girado ? vid.videoHeight : vid.videoWidth, eh = girado ? vid.videoWidth : vid.videoHeight;
+      const W = 1, H = foto.aspecto;
+      o.zoom = ew ? Math.min(W / ew, H / eh) / Math.max(W / ew, H / eh) : 1;
+    }
+    zoom.value = o.zoom; actualizar();
+  };
+
+  // Controles: tiempo
+  const fmt = (t) => (t == null ? '—' : t.toFixed(1) + ' s');
+  const ini = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 0 });
+  const fin = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 1 });
+  const iniT = el('span', {}, '0.0 s'), finT = el('span', {}, '—');
+  ini.addEventListener('input', () => {
+    o.inicio = Math.min(Number(ini.value), (o.fin ?? vid.duration) - 0.2);
+    ini.value = o.inicio; iniT.textContent = fmt(o.inicio); vid.currentTime = o.inicio;
+  });
+  fin.addEventListener('input', () => {
+    o.fin = Math.max(Number(fin.value), o.inicio + 0.2);
+    fin.value = o.fin; finT.textContent = fmt(o.fin); vid.currentTime = Math.max(o.inicio, o.fin - 1);
+  });
+  vid.addEventListener('timeupdate', () => {
+    const f = o.fin ?? vid.duration;
+    if (vid.currentTime >= f - 0.05 || vid.currentTime < o.inicio - 0.1) vid.currentTime = o.inicio;
+  });
+  const vel = el('select', {}, ...[0.5, 0.75, 1, 1.25, 1.5, 2].map((v) =>
+    el('option', { value: v, selected: v === 1 }, v === 1 ? 'Normal (1x)' : v + 'x')));
+  vel.addEventListener('change', () => { o.velocidad = Number(vel.value); actualizar(); });
+  const alFinal = el('select', {},
+    el('option', { value: 'repetir' }, 'Repetir en bucle'),
+    el('option', { value: 'parar' }, 'Detenerse en el último cuadro'),
+    el('option', { value: 'desaparecer' }, 'Desaparecer'));
+  alFinal.addEventListener('change', () => { o.alFinal = alFinal.value; });
+
+  // Controles: efectos
+  const aparicion = el('select', {},
+    el('option', { value: 'ninguna' }, 'Directo sobre la foto'),
+    el('option', { value: 'fundido' }, 'Aparece con fundido'),
+    el('option', { value: 'flotar' }, 'Flota hacia la cámara'),
+    el('option', { value: 'mesa' }, 'Se levanta de pie (pop-up)'),
+    el('option', { value: 'pared' }, 'Sale inclinado (pop-up)'));
+  aparicion.addEventListener('change', () => { o.aparicion = aparicion.value; verEfecto(); });
+  const fondo = el('select', {},
+    el('option', { value: 'ninguno' }, 'No'),
+    el('option', { value: 'negro' }, 'Quitar negro'),
+    el('option', { value: 'verde' }, 'Quitar verde'),
+    el('option', { value: 'azul' }, 'Quitar azul'));
+  fondo.addEventListener('change', () => { o.quitarFondo = fondo.value; tolC.style.display = fondo.value === 'ninguno' ? 'none' : ''; });
+  const tol = el('input', { type: 'number', value: 0.1, step: 0.02, min: 0, max: 0.6 });
+  tol.addEventListener('input', () => { o.tolerancia = Number(tol.value); });
+  const tolC = campo('Intensidad del recorte', tol, 'Súbelo si queda borde; bájalo si se borra de más.');
+  tolC.style.display = 'none';
+
+  function verEfecto() {
+    const anims = {
+      fundido: [{ opacity: 0 }, { opacity: 1 }],
+      flotar: [{ transform: 'scale(0.9)', filter: 'drop-shadow(0 0 0 #0000)' },
+               { transform: 'scale(1.1)', filter: 'drop-shadow(0 18px 18px #0006)' }],
+      mesa: [{ transform: 'perspective(600px) rotateX(-88deg) scale(0.3)', transformOrigin: '50% 85%' },
+             { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
+      pared: [{ transform: 'perspective(600px) rotateX(-60deg) scale(0.3)', transformOrigin: '50% 85%' },
+              { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
+    };
+    const k = anims[o.aparicion];
+    if (k) capaPrev.animate(k, { duration: 1000, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
+    else capaPrev.getAnimations().forEach((a) => a.cancel());
+    vid.currentTime = o.inicio; vid.play().catch(() => {});
+  }
+
+  const reproducir = el('button', { class: 'btn peq', onclick: () => { vid.paused ? vid.play() : vid.pause(); } }, '▶︎ / ❚❚');
+  const sonido = el('button', { class: 'btn peq', onclick: () => { vid.muted = !vid.muted; } }, 'Sonido');
+
+  capa.alArchivo = () => {
+    if (!capa.archivo) return;
+    vid.src = URL.createObjectURL(capa.archivo);
+    vid.addEventListener('loadedmetadata', () => {
+      capa.dims = { vw: vid.videoWidth, vh: vid.videoHeight, duracion: vid.duration };
+      ini.max = fin.max = vid.duration.toFixed(1);
+      fin.value = vid.duration; o.fin = null; finT.textContent = fmt(vid.duration);
+      ajustar('cubrir');
+      vid.play().catch(() => {});
+    }, { once: true });
+  };
+
+  const controles = el('div', {},
+    el('div', { class: 'grupo' }, el('h4', {}, 'Encuadre'),
+      el('div', { class: 'ayuda', style: 'margin:0 0 8px' }, 'Arrastra el video para moverlo. El borde naranja es tu foto: lo que quede fuera no se ve.'),
+      el('label', {}, 'Zoom'), zoom,
+      el('div', { class: 'botones' },
+        el('button', { class: 'btn peq', onclick: () => girar(-90) }, '⟲ Girar'),
+        el('button', { class: 'btn peq', onclick: () => girar(90) }, 'Girar ⟳'),
+        el('button', { class: 'btn peq', onclick: () => ajustar('cubrir') }, 'Llenar la foto'),
+        el('button', { class: 'btn peq', onclick: () => ajustar('contener') }, 'Ver video completo'),
+        reproducir, sonido),
+      el('div', { style: 'margin-top:8px' }, el('label', {}, 'Ver la foto encima (para alinear)'), calcoR)),
+    el('div', { class: 'grupo' }, el('h4', {}, 'Tiempo'),
+      el('label', {}, 'Empieza en'), el('div', { class: 'rango' }, ini, iniT),
+      el('label', {}, 'Termina en'), el('div', { class: 'rango' }, fin, finT),
+      el('div', { class: 'fila', style: 'margin-top:8px' }, campo('Velocidad', vel), campo('Al terminar', alFinal)),
+      el('div', { style: 'margin-top:8px' }, chk('reiniciar', 'Empezar desde el inicio cada vez que se escanea', true))),
+    el('div', { class: 'grupo' }, el('h4', {}, 'Efectos'),
+      el('div', { class: 'fila' }, campo('Cómo aparece', aparicion), campo('Fondo transparente', fondo), tolC),
+      el('div', { class: 'ayuda' }, 'El fondo transparente se ve en el celular; aquí solo se muestra el encuadre.')));
+
+  cuerpo.append(el('div', { class: 'editor' }, escenario, controles));
+  ajustarForma();
 }
 
 /* ---------- Compilación de fotos ---------- */
@@ -363,6 +562,7 @@ $('btnGenerar').addEventListener('click', async () => {
       titulo: $('titulo').value || slug,
       descripcion: $('descripcion').value || undefined,
       maxSimultaneos: 1,
+      seguimiento: $('seguimiento').value,
       objetivos: [],
     };
 
@@ -381,10 +581,20 @@ $('btnGenerar').addEventListener('click', async () => {
         }
         const z = Number(o.frente) || 0;
         if (c.tipo === 'video') {
-          Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}`, repetir: o.repetir, reiniciar: o.reiniciar });
+          const d = c.dims;
+          Object.assign(capa, { ancho: 1, posicion: '0 0 0', alFinal: o.alFinal, reiniciar: o.reiniciar });
+          if (d) {
+            Object.assign(capa, { alto: Math.round(f.aspecto * 10000) / 10000,
+              recorte: calcularRecorte(o, d.vw, d.vh, f.aspecto), giro: o.giro });
+            if (o.inicio > 0) capa.inicio = Math.round(o.inicio * 10) / 10;
+            if (o.fin != null && o.fin < d.duracion - 0.05) capa.fin = Math.round(o.fin * 10) / 10;
+          }
+          if (o.velocidad !== 1) capa.velocidad = o.velocidad;
+          if (o.aparicion === 'fundido' || o.aparicion === 'flotar') capa.aparicion = o.aparicion;
+          if (o.aparicion === 'flotar') capa.altura = 0.15;
+          if (o.aparicion === 'mesa' || o.aparicion === 'pared')
+            Object.assign(capa, { emerger: true, angulo: o.aparicion === 'mesa' ? 90 : 55, base: -0.35 });
           if (o.quitarFondo !== 'ninguno') Object.assign(capa, { quitarFondo: o.quitarFondo, tolerancia: Number(o.tolerancia) || 0.1 });
-          if (o.emerger === 'flotar') Object.assign(capa, { emerger: 'flotar', altura: 0.15 });
-          else if (o.emerger !== 'no') Object.assign(capa, { emerger: true, angulo: o.emerger === 'mesa' ? 90 : 55, base: -0.35 });
         }
         if (c.tipo === 'audio') Object.assign(capa, { volumen: Number(o.volumen), repetir: o.repetir, reiniciar: o.reiniciar });
         if (c.tipo === 'imagen') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}` });
