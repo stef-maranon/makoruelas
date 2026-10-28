@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0f0f14">
+<meta name="theme-color" content="#070d1c">
 <title>Realidad Aumentada</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
-  :root { --acento:#ff5a36; --fondo:#0f0f14; --texto:#f4f1ec; --suave:#a9a6a0; }
+  :root { --acento:#3b82f6; --acento2:#22d3ee; --fondo:#070d1c; --texto:#e6eefc; --suave:#8ea3c4; }
   * { box-sizing:border-box; }
   /* Fondo transparente: así se ve la cámara detrás del contenido */
   html,body { margin:0; height:100%; overflow:hidden; background:transparent; color:var(--texto);
@@ -16,14 +16,14 @@
   .hidden, .oculto { display:none !important; }
 
   .pantalla { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
-    padding:24px; background:radial-gradient(circle at 50% 30%, #262033 0%, var(--fondo) 70%); }
+    padding:24px; background:radial-gradient(circle at 50% 30%, #12306a 0%, var(--fondo) 70%); }
   .tarjeta { max-width:380px; width:100%; text-align:center; }
   .logo { width:72px; height:72px; margin:0 auto 20px; border-radius:20px; display:grid; place-items:center;
-    background:linear-gradient(135deg, var(--acento), #ffb347); font-size:34px; box-shadow:0 10px 40px #ff5a3655; }
+    background:linear-gradient(135deg, #2563eb, var(--acento2)); font-size:34px; box-shadow:0 10px 40px #22d3ee55; }
   h1 { font-size:26px; margin:0 0 10px; letter-spacing:-.02em; }
   p { color:var(--suave); line-height:1.5; margin:0 0 22px; }
   button.principal { width:100%; padding:16px; border:0; border-radius:14px; font-size:17px; font-weight:600;
-    background:var(--acento); color:#fff; cursor:pointer; }
+    background:linear-gradient(135deg, #2563eb, #0ea5e9); color:#fff; cursor:pointer; box-shadow:0 8px 24px #2563eb66; }
   button.principal:disabled { opacity:.5; }
   .nota { font-size:13px; margin-top:16px; }
 
@@ -31,22 +31,22 @@
   #escaneando { position:fixed; inset:0; z-index:20; pointer-events:none; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:22px; }
   .marco { width:70vw; max-width:320px; aspect-ratio:3/4; position:relative; }
-  .marco i { position:absolute; width:40px; height:40px; border:4px solid #fff; border-radius:6px; }
+  .marco i { position:absolute; width:40px; height:40px; border:4px solid var(--acento2); filter:drop-shadow(0 0 6px #22d3ee); border-radius:6px; }
   .marco i:nth-child(1){ top:0; left:0; border-right:0; border-bottom:0; }
   .marco i:nth-child(2){ top:0; right:0; border-left:0; border-bottom:0; }
   .marco i:nth-child(3){ bottom:0; left:0; border-right:0; border-top:0; }
   .marco i:nth-child(4){ bottom:0; right:0; border-left:0; border-top:0; }
-  .marco::after { content:""; position:absolute; left:8%; right:8%; height:3px; background:var(--acento);
-    box-shadow:0 0 18px var(--acento); animation:barrido 2.2s ease-in-out infinite; }
+  .marco::after { content:""; position:absolute; left:8%; right:8%; height:3px; background:var(--acento2);
+    box-shadow:0 0 18px var(--acento2); animation:barrido 2.2s ease-in-out infinite; }
   @keyframes barrido { 0%,100%{ top:6% } 50%{ top:92% } }
-  .pildora { background:#000a; padding:10px 18px; border-radius:99px; font-size:15px; backdrop-filter:blur(6px); }
+  .pildora { background:#07101fcc; border:1px solid #22d3ee55; padding:10px 18px; border-radius:99px; font-size:15px; backdrop-filter:blur(6px); }
 
   /* Barra inferior */
   #barra { position:fixed; left:16px; right:16px; bottom:max(20px, env(safe-area-inset-bottom)); z-index:30;
     display:flex; gap:10px; justify-content:center; }
   #barra button, #barra a { padding:12px 18px; border-radius:99px; border:0; font-size:15px; font-weight:600;
-    background:#000c; color:#fff; text-decoration:none; backdrop-filter:blur(6px); }
-  #barra a { background:var(--acento); }
+    background:#07101fcc; color:#fff; text-decoration:none; backdrop-filter:blur(6px); border:1px solid #22d3ee44; }
+  #barra a { background:linear-gradient(135deg, #2563eb, #0ea5e9); border-color:transparent; }
 
 </style>
 </head>
