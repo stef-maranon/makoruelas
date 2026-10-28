@@ -99,13 +99,16 @@ AFRAME.registerComponent('animar-modelo', {
   tick(t, dt) { if (this.mixer) this.mixer.update(dt / 1000); }
 });
 
-/* ---------- Componente: video con fondo transparente (negro o verde) ---------- */
-AFRAME.registerComponent('video-transparente', {
+/* ---------- Componente: video con recorte, giro, fondo transparente y fundido ---------- */
+AFRAME.registerComponent('video-ar', {
   schema: {
     video: { type: 'selector' },
-    modo: { default: 'negro' },        // negro | verde | azul
-    tolerancia: { default: 0.1 },      // qué tanto del color se vuelve transparente
-    suavidad: { default: 0.08 }        // bordes suaves
+    modo: { default: 'ninguno' },      // ninguno | negro | verde | azul
+    tolerancia: { default: 0.1 },
+    suavidad: { default: 0.08 },
+    recorte: { default: '0,0,1,1' },   // zona visible del video: izq, arriba, der, abajo (0 a 1)
+    giro: { default: 0 },              // 0 | 90 | 180 | 270
+    fundido: { default: 0 }            // ms para aparecer con fundido (0 = sin fundido)
   },
   init() {
     const THREE = AFRAME.THREE;
@@ -114,34 +117,47 @@ AFRAME.registerComponent('video-transparente', {
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.generateMipmaps = false;
-    const clave = d.modo === 'azul' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    const r = String(d.recorte).split(',').map(Number);
+    const modo = d.modo === 'negro' ? 1 : (d.modo === 'verde' || d.modo === 'azul') ? 2 : 0;
     this.material = new THREE.ShaderMaterial({
       uniforms: {
         map: { value: tex },
-        modo: { value: d.modo === 'negro' ? 0 : 1 },
-        clave: { value: clave },
+        modo: { value: modo },
+        clave: { value: d.modo === 'azul' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0) },
         tol: { value: Number(d.tolerancia) },
-        suave: { value: Number(d.suavidad) }
+        suave: { value: Number(d.suavidad) },
+        rec: { value: new THREE.Vector4(r[0] || 0, r[1] || 0, r[2] ?? 1, r[3] ?? 1) },
+        giro: { value: Math.round(Number(d.giro) / 90) % 4 },
+        opacidad: { value: 1 }
       },
       vertexShader: `
         varying vec2 vUv;
         void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
         uniform sampler2D map; uniform int modo; uniform vec3 clave; uniform float tol; uniform float suave;
+        uniform vec4 rec; uniform int giro; uniform float opacidad;
         varying vec2 vUv;
         vec2 croma(vec3 c) {
           return vec2(-0.169 * c.r - 0.331 * c.g + 0.5 * c.b, 0.5 * c.r - 0.419 * c.g - 0.081 * c.b);
         }
         void main() {
-          vec4 c = texture2D(map, vUv);
-          float a;
-          if (modo == 0) {
-            float brillo = max(c.r, max(c.g, c.b));
-            a = smoothstep(tol, tol + suave, brillo);
-          } else {
-            float dist = distance(croma(c.rgb), croma(clave));
-            a = smoothstep(tol, tol + suave, dist);
+          // Punto en el video ya girado (coordenadas de arriba hacia abajo)
+          float ru = mix(rec.x, rec.z, vUv.x);
+          float rv = mix(rec.y, rec.w, 1.0 - vUv.y);
+          vec2 o;
+          if (giro == 1) o = vec2(rv, 1.0 - ru);
+          else if (giro == 2) o = vec2(1.0 - ru, 1.0 - rv);
+          else if (giro == 3) o = vec2(1.0 - rv, ru);
+          else o = vec2(ru, rv);
+          if (o.x < 0.0 || o.x > 1.0 || o.y < 0.0 || o.y > 1.0) discard;
+          vec4 c = texture2D(map, vec2(o.x, 1.0 - o.y));
+          float a = 1.0;
+          if (modo == 1) {
+            a = smoothstep(tol, tol + suave, max(c.r, max(c.g, c.b)));
+          } else if (modo == 2) {
+            a = smoothstep(tol, tol + suave, distance(croma(c.rgb), croma(clave)));
           }
+          a *= opacidad;
           if (a < 0.02) discard;
           gl_FragColor = vec4(c.rgb, a);
         }`,
@@ -149,10 +165,19 @@ AFRAME.registerComponent('video-transparente', {
       depthWrite: false,
       side: THREE.DoubleSide
     });
+    this.t0 = null;
+    this.el.addEventListener('aparecer', () => {
+      if (Number(this.data.fundido) > 0) { this.material.uniforms.opacidad.value = 0; this.t0 = performance.now(); }
+    });
   },
   tick() {
     const m = this.el.getObject3D('mesh');
     if (m && m.material !== this.material) m.material = this.material;
+    if (this.t0 !== null) {
+      const p = Math.min(1, (performance.now() - this.t0) / Number(this.data.fundido));
+      this.material.uniforms.opacidad.value = p;
+      if (p >= 1) this.t0 = null;
+    }
   }
 });
 
@@ -209,10 +234,11 @@ function crearCapa(c, id) {
   const rot = c.rotacion || '0 0 0';
 
   if (c.tipo === 'video') {
+    const alFinal = c.alFinal || (c.repetir === false ? 'parar' : 'repetir');
     const v = document.createElement('video');
     v.id = 'v' + id;
     v.src = ruta(c.src);
-    v.loop = c.repetir !== false;
+    v.loop = alFinal === 'repetir' && c.fin == null;
     v.muted = true;
     v.preload = 'auto';
     v.crossOrigin = 'anonymous';
@@ -226,23 +252,34 @@ function crearCapa(c, id) {
     plano.setAttribute('height', c.alto || ancho * 0.5625);
     plano.setAttribute('position', pos);
     plano.setAttribute('rotation', rot);
-    if (c.quitarFondo && c.quitarFondo !== 'ninguno') {
-      plano.setAttribute('material', 'shader: flat; transparent: true');
-      plano.setAttribute('video-transparente',
-        `video: #${v.id}; modo: ${c.quitarFondo}; tolerancia: ${c.tolerancia ?? (c.quitarFondo === 'negro' ? 0.1 : 0.12)}`);
-    } else {
-      plano.setAttribute('material', `shader: flat; src: #${v.id}; side: double`);
-    }
+    plano.setAttribute('material', 'shader: flat; transparent: true');
+    const recorte = Array.isArray(c.recorte) ? c.recorte.join(',') : '0,0,1,1';
+    plano.setAttribute('video-ar',
+      `video: #${v.id}; modo: ${c.quitarFondo || 'ninguno'}; ` +
+      `tolerancia: ${c.tolerancia ?? (c.quitarFondo === 'negro' ? 0.1 : 0.12)}; ` +
+      `recorte: ${recorte}; giro: ${Number(c.giro) || 0}; fundido: ${c.aparicion === 'fundido' ? (c.fundido || 700) : 0}`);
     if (!c.alto) {
       v.addEventListener('loadedmetadata', () => {
         if (v.videoWidth) plano.setAttribute('height', ancho * v.videoHeight / v.videoWidth);
       });
     }
-    const medio = { el: v, reiniciar: !!c.reiniciar };
+
+    // Tiempos: inicio, fin, velocidad y qué pasa al terminar
+    const inicio = Number(c.inicio) || 0;
+    const fin = c.fin != null ? Number(c.fin) : null;
+    const medio = { el: v, reiniciar: !!c.reiniciar, inicio, fin, alFinal, plano,
+      velocidad: Number(c.velocidad) || 1, terminado: false };
+    const terminar = () => {
+      if (alFinal === 'repetir') { v.currentTime = inicio; v.play().catch(() => {}); return; }
+      v.pause();
+      medio.terminado = true;
+      if (alFinal === 'desaparecer') plano.setAttribute('visible', false);
+    };
+    v.addEventListener('timeupdate', () => { if (fin != null && v.currentTime >= fin && !medio.terminado) terminar(); });
+    v.addEventListener('ended', () => { if (!v.loop) terminar(); });
     todosLosMedios.push(medio);
 
-    if (c.emerger === 'flotar') {
-      // Sale de la foto hacia la cámara, paralelo a ella
+    if (c.emerger === 'flotar' || c.aparicion === 'flotar') {
       const altura = Number(c.altura ?? 0.15);
       const capa = document.createElement('a-entity');
       capa.setAttribute('animation__emerger',
@@ -257,7 +294,7 @@ function crearCapa(c, id) {
     if (c.emerger) {
       // Efecto pop-up: el video se levanta desde la foto como un libro desplegable
       const angulo = Number(c.angulo ?? 90);
-      const [px, py, pz] = pos.split(/\s+/).map(Number);
+      const [px, , pz] = pos.split(/\s+/).map(Number);
       const bisagra = document.createElement('a-entity');
       bisagra.setAttribute('position', `${px || 0} ${c.base ?? -0.35} ${pz || 0.01}`);
       bisagra.setAttribute('rotation', '0 0 0');
@@ -265,7 +302,6 @@ function crearCapa(c, id) {
         `property: rotation; from: 0 0 0; to: ${angulo} 0 0; dur: ${c.duracion || 1100}; easing: easeOutBack; startEvents: emerger`);
       bisagra.setAttribute('animation__crecer',
         `property: scale; from: 0.2 0.2 0.2; to: 1 1 1; dur: ${c.duracion || 1100}; easing: easeOutCubic; startEvents: emerger`);
-      // El borde inferior del video queda en la bisagra
       const subir = () => plano.setAttribute('position', `0 ${Number(plano.getAttribute('height')) / 2} 0`);
       plano.setAttribute('position', `0 ${(c.alto || ancho * 0.5625) / 2} 0`);
       plano.setAttribute('rotation', '0 0 0');
@@ -325,12 +361,19 @@ function crearCapa(c, id) {
   return {};
 }
 
+// rapido: responde al instante (puede temblar un poco) · suave: estable pero con retraso
+function filtroSeguimiento(modo) {
+  if (modo === 'suave') return 'filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5';
+  if (modo === 'equilibrado') return 'filterMinCF: 0.0005; filterBeta: 10; warmupTolerance: 3; missTolerance: 5';
+  return 'filterMinCF: 0.001; filterBeta: 1000; warmupTolerance: 2; missTolerance: 5';
+}
+
 function construirEscena() {
   const objetivos = config.objetivos || [];
   escena = document.createElement('a-scene');
   escena.setAttribute('mindar-image',
     `imageTargetSrc: ${base}targets.mind; autoStart: false; uiLoading: no; uiScanning: #escaneando; uiError: yes; ` +
-    `maxTrack: ${config.maxSimultaneos || 1}; filterMinCF: 0.0001; filterBeta: 0.001`);
+    `maxTrack: ${config.maxSimultaneos || 1}; ${filtroSeguimiento(config.seguimiento)}`);
   escena.setAttribute('color-space', 'sRGB');
   escena.setAttribute('renderer', 'colorManagement: true; antialias: true; alpha: true');
   escena.setAttribute('vr-mode-ui', 'enabled: false');
@@ -379,7 +422,18 @@ function construirEscena() {
 /* ---------- Reproducción ---------- */
 function reproducir(medio) {
   const el = medio.el;
-  if (medio.reiniciar) el.currentTime = 0;
+  const inicio = medio.inicio || 0;
+  if (medio.terminado) {
+    if (!medio.reiniciar) return;           // se quedó detenido: no vuelve a empezar
+    medio.terminado = false;
+    el.currentTime = inicio;
+  }
+  if (medio.plano) medio.plano.setAttribute('visible', true);
+  if (medio.reiniciar || el.currentTime < inicio || (medio.fin != null && el.currentTime >= medio.fin)) {
+    el.currentTime = inicio;
+  }
+  if (medio.velocidad) el.playbackRate = medio.velocidad;
+  if (medio.plano) medio.plano.emit('aparecer');
   const p = el.play();
   if (p && p.catch) {
     p.catch(() => {
