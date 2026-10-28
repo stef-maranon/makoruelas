@@ -242,7 +242,15 @@ function agregarCapa(foto, tipo, contenedor) {
       el('option', { value: 'verde' }, 'Quitar fondo verde (pantalla verde)'),
       el('option', { value: 'azul' }, 'Quitar fondo azul'));
     selFondo.addEventListener('change', () => { o.quitarFondo = selFondo.value; });
+    o.emerger = 'no';
+    const selEmerger = el('select', {},
+      el('option', { value: 'no' }, 'No, el video queda sobre la foto'),
+      el('option', { value: 'mesa' }, 'Sí, se levanta de pie (foto sobre mesa)'),
+      el('option', { value: 'pared' }, 'Sí, sale inclinado (foto en la mano o pared)'),
+      el('option', { value: 'flotar' }, 'Sí, flota hacia la cámara (paralelo a la foto)'));
+    selEmerger.addEventListener('change', () => { o.emerger = selEmerger.value; });
     cuerpo.append(
+      campo('Efecto "sale de la foto"', selEmerger, 'Se despliega como un libro pop-up al escanear.'),
       campo('Fondo transparente', selFondo, 'Hace que el contenido parezca salir de la foto.'),
       num('tolerancia', 'Intensidad del recorte', 0.1, 0.02, 'Súbelo si queda borde; bájalo si se borra de más.'),
       el('div', {}, chk('repetir', 'Repetir en bucle', true), chk('reiniciar', 'Empezar desde el inicio cada vez', false)));
@@ -375,6 +383,8 @@ $('btnGenerar').addEventListener('click', async () => {
         if (c.tipo === 'video') {
           Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}`, repetir: o.repetir, reiniciar: o.reiniciar });
           if (o.quitarFondo !== 'ninguno') Object.assign(capa, { quitarFondo: o.quitarFondo, tolerancia: Number(o.tolerancia) || 0.1 });
+          if (o.emerger === 'flotar') Object.assign(capa, { emerger: 'flotar', altura: 0.15 });
+          else if (o.emerger !== 'no') Object.assign(capa, { emerger: true, angulo: o.emerger === 'mesa' ? 90 : 55, base: -0.35 });
         }
         if (c.tipo === 'audio') Object.assign(capa, { volumen: Number(o.volumen), repetir: o.repetir, reiniciar: o.reiniciar });
         if (c.tipo === 'imagen') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}` });
