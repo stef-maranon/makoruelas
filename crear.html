@@ -47,13 +47,13 @@
   .oculto { display:none !important; }
   .editor { display:grid; grid-template-columns:minmax(200px, 300px) 1fr; gap:18px; grid-column:1/-1; margin-top:6px; }
   @media (max-width:640px) { .editor { grid-template-columns:1fr; } }
-  .escenario { position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:10px; touch-action:none;
+  .escenario { position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:4px; touch-action:none;
     cursor:grab; background:repeating-conic-gradient(#e7e1d8 0 25%, #fff 0 50%) 0 0/16px 16px; }
   .escenario:active { cursor:grabbing; }
-  .escenario .capa-prev { position:absolute; inset:0; }
+  .escenario .capa-prev { position:absolute; inset:0; overflow:hidden; }
   .escenario video { position:absolute; left:50%; top:50%; max-width:none; pointer-events:none; }
   .escenario img.calco { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; }
-  .escenario .borde { position:absolute; inset:0; border:2px solid var(--acento); border-radius:10px; pointer-events:none; }
+  .escenario .borde { position:absolute; inset:0; border:2px solid var(--acento); border-radius:2px; pointer-events:none; }
   .escenario .vacio { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:16px;
     color:var(--suave); font-size:13px; }
   .grupo { border-top:1px solid var(--linea); padding-top:10px; margin-top:10px; }
@@ -316,7 +316,7 @@ function calcularRecorte(o, vw, vh, aspecto) {
 
 function editorVideo(foto, capa, o, cuerpo, chk) {
   Object.assign(o, { zoom: 1, x: 0, y: 0, giro: 0, inicio: 0, fin: null, velocidad: 1, alFinal: 'repetir',
-    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, calco: 0.35 });
+    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, calco: 0.35, tamano: 1, radio: 0 });
 
   // Vista previa: tiene la forma exacta de la foto
   const vid = el('video', { playsinline: true, loop: true });
@@ -324,7 +324,17 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
   const capaPrev = el('div', { class: 'capa-prev' }, vid);
   const calco = el('img', { class: 'calco', alt: '' });
   const vacio = el('div', { class: 'vacio' }, 'Sube la foto y el video para acomodarlo aquí');
-  const escenario = el('div', { class: 'escenario' }, capaPrev, calco, el('div', { class: 'borde' }), vacio);
+  const borde = el('div', { class: 'borde' });
+  const escenario = el('div', { class: 'escenario' }, capaPrev, calco, borde, vacio);
+  // La vista previa es el área del video; la foto (borde naranja) queda adentro, más chica si el video es más grande
+  const ubicarFoto = () => {
+    const pct = 100 / o.tamano, m = (100 - pct) / 2;
+    for (const n of [calco, borde]) {
+      n.style.inset = 'auto'; n.style.left = m + '%'; n.style.top = m + '%';
+      n.style.width = pct + '%'; n.style.height = pct + '%';
+    }
+    capaPrev.style.borderRadius = o.radio * Math.min(escenario.clientWidth, escenario.clientHeight) + 'px';
+  };
 
   const ajustarForma = () => {
     escenario.style.aspectRatio = `1 / ${foto.aspecto}`;
@@ -337,7 +347,7 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
   function actualizar() {
     const vw = vid.videoWidth, vh = vid.videoHeight;
     vacio.style.display = vw ? 'none' : '';
-    if (!vw) return;
+    if (!vw) { ubicarFoto(); return; }
     const W = escenario.clientWidth, H = escenario.clientHeight;
     const girado = o.giro % 180 !== 0;
     const ew = girado ? vh : vw, eh = girado ? vw : vh;
@@ -346,6 +356,7 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
     vid.style.height = vh * sc + 'px';
     vid.style.transform = `translate(-50%, -50%) translate(${o.x * W}px, ${o.y * H}px) rotate(${o.giro}deg)`;
     vid.playbackRate = o.velocidad;
+    ubicarFoto();
   }
   new ResizeObserver(actualizar).observe(escenario);
 
@@ -373,6 +384,17 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
   // Controles: encuadre
   const zoom = el('input', { type: 'range', min: 0.2, max: 4, step: 0.01, value: 1 });
   zoom.addEventListener('input', () => { o.zoom = Number(zoom.value); actualizar(); });
+  const fmtX = (n) => n.toFixed(2) + 'x';
+  const tamano = el('input', { type: 'range', min: 0.5, max: 2.5, step: 0.05, value: 1 });
+  const tamanoT = el('span', {}, '1.00x');
+  tamano.addEventListener('input', () => { o.tamano = Number(tamano.value); tamanoT.textContent = fmtX(o.tamano); actualizar(); });
+  const radio = el('input', { type: 'range', min: 0, max: 0.5, step: 0.01, value: 0 });
+  const radioT = el('span', {}, 'Rectas');
+  radio.addEventListener('input', () => {
+    o.radio = Number(radio.value);
+    radioT.textContent = o.radio === 0 ? 'Rectas' : o.radio >= 0.5 ? 'Máximo' : Math.round(o.radio * 200) + '%';
+    actualizar();
+  });
   const calcoR = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: o.calco });
   calcoR.addEventListener('input', () => { o.calco = Number(calcoR.value); calco.style.opacity = o.calco; });
   const girar = (d) => { o.giro = (o.giro + d + 360) % 360; actualizar(); };
@@ -466,8 +488,12 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
 
   const controles = el('div', {},
     el('div', { class: 'grupo' }, el('h4', {}, 'Encuadre'),
-      el('div', { class: 'ayuda', style: 'margin:0 0 8px' }, 'Arrastra el video para moverlo. El borde naranja es tu foto: lo que quede fuera no se ve.'),
-      el('label', {}, 'Zoom'), zoom,
+      el('div', { class: 'ayuda', style: 'margin:0 0 8px' }, 'Arrastra el video para moverlo. El cuadro es el área del video en el celular; el borde naranja es tu foto.'),
+      el('label', {}, 'Tamaño del video en el celular (1x = igual que la foto)'),
+      el('div', { class: 'rango' }, tamano, tamanoT),
+      el('label', { style: 'margin-top:6px' }, 'Esquinas redondeadas'),
+      el('div', { class: 'rango' }, radio, radioT),
+      el('label', { style: 'margin-top:6px' }, 'Zoom dentro del video (acerca la imagen sin cambiar el tamaño)'), zoom,
       el('div', { class: 'botones' },
         el('button', { class: 'btn peq', onclick: () => girar(-90) }, '⟲ Girar'),
         el('button', { class: 'btn peq', onclick: () => girar(90) }, 'Girar ⟳'),
@@ -584,12 +610,13 @@ $('btnGenerar').addEventListener('click', async () => {
           const d = c.dims;
           Object.assign(capa, { ancho: 1, posicion: '0 0 0', alFinal: o.alFinal, reiniciar: o.reiniciar });
           if (d) {
-            Object.assign(capa, { alto: Math.round(f.aspecto * 10000) / 10000,
+            Object.assign(capa, { ancho: o.tamano, alto: Math.round(f.aspecto * o.tamano * 10000) / 10000,
               recorte: calcularRecorte(o, d.vw, d.vh, f.aspecto), giro: o.giro });
             if (o.inicio > 0) capa.inicio = Math.round(o.inicio * 10) / 10;
             if (o.fin != null && o.fin < d.duracion - 0.05) capa.fin = Math.round(o.fin * 10) / 10;
           }
           if (o.velocidad !== 1) capa.velocidad = o.velocidad;
+          if (o.radio > 0) capa.radio = o.radio;
           if (o.aparicion === 'fundido' || o.aparicion === 'flotar') capa.aparicion = o.aparicion;
           if (o.aparicion === 'flotar') capa.altura = 0.15;
           if (o.aparicion === 'mesa' || o.aparicion === 'pared')
