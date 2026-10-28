@@ -15,7 +15,7 @@
           "ancho": 1,
           "posicion": "0 0 0",
           "repetir": true,
-          "reiniciar": false
+          "reiniciar": true
         }
       ]
     }
