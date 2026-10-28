@@ -10,6 +10,8 @@
         {
           "tipo": "video",
           "src": "foto1-capa1.mp4",
+          "quitarFondo": "negro",
+          "tolerancia": 0.1,
           "ancho": 1,
           "posicion": "0 0 0",
           "repetir": true,
