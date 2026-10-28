@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f0f14">
+<title>Realidad Aumentada</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+  :root { --acento:#ff5a36; --fondo:#0f0f14; --texto:#f4f1ec; --suave:#a9a6a0; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:var(--fondo); color:var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .hidden, .oculto { display:none !important; }
+
+  .pantalla { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    padding:24px; background:radial-gradient(circle at 50% 30%, #262033 0%, var(--fondo) 70%); }
+  .tarjeta { max-width:380px; width:100%; text-align:center; }
+  .logo { width:72px; height:72px; margin:0 auto 20px; border-radius:20px; display:grid; place-items:center;
+    background:linear-gradient(135deg, var(--acento), #ffb347); font-size:34px; box-shadow:0 10px 40px #ff5a3655; }
+  h1 { font-size:26px; margin:0 0 10px; letter-spacing:-.02em; }
+  p { color:var(--suave); line-height:1.5; margin:0 0 22px; }
+  button.principal { width:100%; padding:16px; border:0; border-radius:14px; font-size:17px; font-weight:600;
+    background:var(--acento); color:#fff; cursor:pointer; }
+  button.principal:disabled { opacity:.5; }
+  .nota { font-size:13px; margin-top:16px; }
+
+  /* Guía de escaneo */
+  #escaneando { position:fixed; inset:0; z-index:20; pointer-events:none; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:22px; }
+  .marco { width:70vw; max-width:320px; aspect-ratio:3/4; position:relative; }
+  .marco i { position:absolute; width:40px; height:40px; border:4px solid #fff; border-radius:6px; }
+  .marco i:nth-child(1){ top:0; left:0; border-right:0; border-bottom:0; }
+  .marco i:nth-child(2){ top:0; right:0; border-left:0; border-bottom:0; }
+  .marco i:nth-child(3){ bottom:0; left:0; border-right:0; border-top:0; }
+  .marco i:nth-child(4){ bottom:0; right:0; border-left:0; border-top:0; }
+  .marco::after { content:""; position:absolute; left:8%; right:8%; height:3px; background:var(--acento);
+    box-shadow:0 0 18px var(--acento); animation:barrido 2.2s ease-in-out infinite; }
+  @keyframes barrido { 0%,100%{ top:6% } 50%{ top:92% } }
+  .pildora { background:#000a; padding:10px 18px; border-radius:99px; font-size:15px; backdrop-filter:blur(6px); }
+
+  /* Barra inferior */
+  #barra { position:fixed; left:16px; right:16px; bottom:max(20px, env(safe-area-inset-bottom)); z-index:30;
+    display:flex; gap:10px; justify-content:center; }
+  #barra button, #barra a { padding:12px 18px; border-radius:99px; border:0; font-size:15px; font-weight:600;
+    background:#000c; color:#fff; text-decoration:none; backdrop-filter:blur(6px); }
+  #barra a { background:var(--acento); }
+
+  /* MindAR pone video y canvas en el body */
+  body > video, body > canvas { position:fixed !important; }
+</style>
+</head>
+<body>
+
+<div id="inicio" class="pantalla">
+  <div class="tarjeta">
+    <div class="logo">✦</div>
+    <h1 id="titulo">Realidad aumentada</h1>
+    <p id="descripcion">Apunta la cámara a la imagen y mira cómo cobra vida.</p>
+    <button id="btnComenzar" class="principal" disabled>Cargando…</button>
+    <p class="nota">Te pediremos permiso para usar la cámara. Sube el volumen 🔊</p>
+  </div>
+</div>
+
+<div id="error" class="pantalla oculto">
+  <div class="tarjeta">
+    <div class="logo">!</div>
+    <h1 id="errorTitulo">Algo salió mal</h1>
+    <p id="errorTexto"></p>
+  </div>
+</div>
+
+<!-- MindAR muestra/oculta este elemento mientras busca la imagen -->
+<div id="escaneando" class="hidden">
+  <div class="marco"><i></i><i></i><i></i><i></i></div>
+  <div class="pildora">Apunta a la imagen</div>
+</div>
+
+<div id="barra" class="oculto">
+  <button id="btnSonido" class="oculto">🔇 Activar sonido</button>
+  <a id="btnEnlace" class="oculto" target="_blank" rel="noopener"></a>
+</div>
+
+<div id="medios" style="display:none"></div>
+
+<script>
+/* ---------- Componente: reproduce animaciones incluidas en modelos .glb ---------- */
+AFRAME.registerComponent('animar-modelo', {
+  init() {
+    this.mixer = null;
+    this.el.addEventListener('model-loaded', (e) => {
+      const modelo = e.detail.model;
+      const clips = modelo.animations || [];
+      if (!clips.length) return;
+      this.mixer = new AFRAME.THREE.AnimationMixer(modelo);
+      clips.forEach((c) => this.mixer.clipAction(c).play());
+    });
+  },
+  tick(t, dt) { if (this.mixer) this.mixer.update(dt / 1000); }
+});
+
+/* ---------- Configuración ---------- */
+const params = new URLSearchParams(location.search);
+const proyecto = (params.get('p') || '').replace(/[^a-zA-Z0-9_-]/g, '');
+const base = `proyectos/${proyecto}/`;
+const $ = (id) => document.getElementById(id);
+
+let config = null;
+let escena = null;
+const todosLosMedios = [];     // audio y video de todas las fotos
+const visibles = new Map();    // índice de foto -> datos
+
+function mostrarError(titulo, texto) {
+  $('inicio').classList.add('oculto');
+  $('errorTitulo').textContent = titulo;
+  $('errorTexto').textContent = texto;
+  $('error').classList.remove('oculto');
+}
+
+function ruta(src) {
+  if (!src) return '';
+  return /^(https?:)?\/\//.test(src) ? src : base + src;
+}
+
+async function cargar() {
+  if (!proyecto) {
+    return mostrarError('Escanea un código QR',
+      'Este enlace no indica qué experiencia abrir. Usa el QR o el enlace que te compartieron.');
+  }
+  try {
+    const r = await fetch(base + 'config.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error(r.status);
+    config = await r.json();
+  } catch (e) {
+    return mostrarError('No encontramos esta experiencia',
+      `Revisa que exista la carpeta "proyectos/${proyecto}" con su config.json.`);
+  }
+  if (config.titulo) { $('titulo').textContent = config.titulo; document.title = config.titulo; }
+  if (config.descripcion) $('descripcion').textContent = config.descripcion;
+  construirEscena();
+}
+
+/* ---------- Capas ---------- */
+function crearCapa(c, id) {
+  const pos = c.posicion || '0 0 0';
+  const rot = c.rotacion || '0 0 0';
+
+  if (c.tipo === 'video') {
+    const v = document.createElement('video');
+    v.id = 'v' + id;
+    v.src = ruta(c.src);
+    v.loop = c.repetir !== false;
+    v.muted = true;
+    v.preload = 'auto';
+    v.crossOrigin = 'anonymous';
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    $('medios').appendChild(v);
+
+    const ancho = Number(c.ancho) || 1;
+    const plano = document.createElement('a-plane');
+    plano.setAttribute('width', ancho);
+    plano.setAttribute('height', c.alto || ancho * 0.5625);
+    plano.setAttribute('position', pos);
+    plano.setAttribute('rotation', rot);
+    plano.setAttribute('material', `shader: flat; src: #${v.id}; side: double`);
+    if (!c.alto) {
+      v.addEventListener('loadedmetadata', () => {
+        if (v.videoWidth) plano.setAttribute('height', ancho * v.videoHeight / v.videoWidth);
+      });
+    }
+    const medio = { el: v, reiniciar: !!c.reiniciar };
+    todosLosMedios.push(medio);
+    return { el: plano, medio };
+  }
+
+  if (c.tipo === 'audio') {
+    const a = document.createElement('audio');
+    a.src = ruta(c.src);
+    a.loop = c.repetir !== false;
+    a.preload = 'auto';
+    a.volume = c.volumen != null ? Number(c.volumen) : 1;
+    $('medios').appendChild(a);
+    const medio = { el: a, reiniciar: !!c.reiniciar };
+    todosLosMedios.push(medio);
+    return { medio };
+  }
+
+  if (c.tipo === 'modelo') {
+    const envoltura = document.createElement('a-entity');
+    envoltura.setAttribute('position', pos);
+    envoltura.setAttribute('rotation', rot);
+    const m = document.createElement('a-gltf-model');
+    m.setAttribute('src', ruta(c.src));
+    const s = Number(c.escala) || 0.3;
+    m.setAttribute('scale', `${s} ${s} ${s}`);
+    if (c.animar !== false) m.setAttribute('animar-modelo', '');
+    if (c.girar) m.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear');
+    envoltura.appendChild(m);
+    return { el: envoltura };
+  }
+
+  if (c.tipo === 'imagen') {
+    const ancho = Number(c.ancho) || 1;
+    const img = document.createElement('a-image');
+    img.setAttribute('src', ruta(c.src));
+    img.setAttribute('width', ancho);
+    img.setAttribute('height', c.alto || ancho);
+    img.setAttribute('position', pos);
+    img.setAttribute('rotation', rot);
+    img.setAttribute('material', 'transparent: true; alphaTest: 0.01; shader: flat');
+    if (!c.alto) {
+      const probe = new Image();
+      probe.onload = () => img.setAttribute('height', ancho * probe.naturalHeight / probe.naturalWidth);
+      probe.src = ruta(c.src);
+    }
+    return { el: img };
+  }
+
+  if (c.tipo === 'enlace' && c.url) {
+    return { enlace: { texto: c.texto || 'Ver más', url: c.url } };
+  }
+  return {};
+}
+
+function construirEscena() {
+  const objetivos = config.objetivos || [];
+  escena = document.createElement('a-scene');
+  escena.setAttribute('mindar-image',
+    `imageTargetSrc: ${base}targets.mind; autoStart: false; uiLoading: no; uiScanning: #escaneando; uiError: yes; ` +
+    `maxTrack: ${config.maxSimultaneos || 1}; filterMinCF: 0.0001; filterBeta: 0.001`);
+  escena.setAttribute('color-space', 'sRGB');
+  escena.setAttribute('renderer', 'colorManagement: true; antialias: true; alpha: true');
+  escena.setAttribute('vr-mode-ui', 'enabled: false');
+  escena.setAttribute('device-orientation-permission-ui', 'enabled: false');
+
+  const cam = document.createElement('a-camera');
+  cam.setAttribute('position', '0 0 0');
+  cam.setAttribute('look-controls', 'enabled: false');
+  escena.appendChild(cam);
+
+  const luzA = document.createElement('a-entity');
+  luzA.setAttribute('light', 'type: ambient; intensity: 1.2');
+  escena.appendChild(luzA);
+  const luzD = document.createElement('a-entity');
+  luzD.setAttribute('light', 'type: directional; intensity: 1.5');
+  luzD.setAttribute('position', '0.5 1 1');
+  escena.appendChild(luzD);
+
+  objetivos.forEach((obj, i) => {
+    const ent = document.createElement('a-entity');
+    ent.setAttribute('mindar-image-target', `targetIndex: ${i}`);
+    const datos = { medios: [], enlace: null };
+    (obj.capas || []).forEach((capa, j) => {
+      const r = crearCapa(capa, `${i}_${j}`);
+      if (r.el) ent.appendChild(r.el);
+      if (r.medio) datos.medios.push(r.medio);
+      if (r.enlace) datos.enlace = r.enlace;
+    });
+    ent.addEventListener('targetFound', () => alEncontrar(i, datos));
+    ent.addEventListener('targetLost', () => alPerder(i, datos));
+    escena.appendChild(ent);
+  });
+
+  escena.addEventListener('loaded', () => {
+    $('btnComenzar').disabled = false;
+    $('btnComenzar').textContent = 'Comenzar';
+  });
+  escena.addEventListener('arError', () => {
+    mostrarError('No pudimos abrir la cámara',
+      'Revisa que diste permiso de cámara y que abriste el enlace en Safari o Chrome (no dentro de Instagram o WhatsApp).');
+  });
+  document.body.appendChild(escena);
+}
+
+/* ---------- Reproducción ---------- */
+function reproducir(medio) {
+  const el = medio.el;
+  if (medio.reiniciar) el.currentTime = 0;
+  const p = el.play();
+  if (p && p.catch) {
+    p.catch(() => {
+      // El navegador bloqueó el sonido: reproducimos en silencio y ofrecemos activarlo
+      el.muted = true;
+      el.play().catch(() => {});
+      $('btnSonido').classList.remove('oculto');
+      actualizarBarra();
+    });
+  }
+}
+
+function alEncontrar(i, datos) {
+  visibles.set(i, datos);
+  datos.medios.forEach(reproducir);
+  actualizarBarra();
+}
+
+function alPerder(i, datos) {
+  visibles.delete(i);
+  datos.medios.forEach((m) => m.el.pause());
+  actualizarBarra();
+}
+
+function actualizarBarra() {
+  let enlace = null;
+  visibles.forEach((d) => { if (d.enlace) enlace = d.enlace; });
+  const a = $('btnEnlace');
+  if (enlace) { a.href = enlace.url; a.textContent = enlace.texto; a.classList.remove('oculto'); }
+  else a.classList.add('oculto');
+  const hayAlgo = enlace || !$('btnSonido').classList.contains('oculto');
+  $('barra').classList.toggle('oculto', !hayAlgo);
+}
+
+// Un toque del usuario "desbloquea" el audio y video en iPhone y Android
+function desbloquearMedios() {
+  todosLosMedios.forEach(({ el }) => {
+    if (el.tagName === 'VIDEO') el.muted = false;
+    const p = el.play();
+    if (p && p.then) p.then(() => { el.pause(); el.currentTime = 0; }).catch(() => {});
+  });
+}
+
+$('btnComenzar').addEventListener('click', () => {
+  desbloquearMedios();
+  $('inicio').classList.add('oculto');
+  escena.systems['mindar-image-system'].start();
+});
+
+$('btnSonido').addEventListener('click', () => {
+  todosLosMedios.forEach(({ el }) => { el.muted = false; });
+  visibles.forEach((d) => d.medios.forEach((m) => m.el.play().catch(() => {})));
+  $('btnSonido').classList.add('oculto');
+  actualizarBarra();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) todosLosMedios.forEach(({ el }) => el.pause());
+});
+
+cargar();
+</script>
+</body>
+</html>
