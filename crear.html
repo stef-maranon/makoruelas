@@ -234,7 +234,17 @@ function agregarCapa(foto, tipo, contenedor) {
   if (tipo === 'video') {
     cuerpo.append(
       num('ancho', 'Ancho (1 = ancho de la foto)', 1, 0.05, 'El alto se ajusta solo a la proporción del video.'),
-      num('frente', 'Separación de la foto', 0, 0.01),
+      num('frente', 'Separación de la foto', 0, 0.01));
+    o.quitarFondo = 'ninguno';
+    const selFondo = el('select', {},
+      el('option', { value: 'ninguno' }, 'No, mostrar el video completo'),
+      el('option', { value: 'negro' }, 'Quitar fondo negro'),
+      el('option', { value: 'verde' }, 'Quitar fondo verde (pantalla verde)'),
+      el('option', { value: 'azul' }, 'Quitar fondo azul'));
+    selFondo.addEventListener('change', () => { o.quitarFondo = selFondo.value; });
+    cuerpo.append(
+      campo('Fondo transparente', selFondo, 'Hace que el contenido parezca salir de la foto.'),
+      num('tolerancia', 'Intensidad del recorte', 0.1, 0.02, 'Súbelo si queda borde; bájalo si se borra de más.'),
       el('div', {}, chk('repetir', 'Repetir en bucle', true), chk('reiniciar', 'Empezar desde el inicio cada vez', false)));
   }
   if (tipo === 'audio') {
@@ -362,7 +372,10 @@ $('btnGenerar').addEventListener('click', async () => {
           carpeta.file(capa.src, c.archivo);
         }
         const z = Number(o.frente) || 0;
-        if (c.tipo === 'video') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}`, repetir: o.repetir, reiniciar: o.reiniciar });
+        if (c.tipo === 'video') {
+          Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}`, repetir: o.repetir, reiniciar: o.reiniciar });
+          if (o.quitarFondo !== 'ninguno') Object.assign(capa, { quitarFondo: o.quitarFondo, tolerancia: Number(o.tolerancia) || 0.1 });
+        }
         if (c.tipo === 'audio') Object.assign(capa, { volumen: Number(o.volumen), repetir: o.repetir, reiniciar: o.reiniciar });
         if (c.tipo === 'imagen') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}` });
         if (c.tipo === 'modelo') Object.assign(capa, {
