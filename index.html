@@ -386,11 +386,12 @@ function crearCapa(c, id) {
   return {};
 }
 
-// rapido: responde al instante (puede temblar un poco) · suave: estable pero con retraso
+// Filtro anti-temblor de MindAR: filterMinCF bajo = menos temblor quieto; filterBeta alto = menos retraso al mover.
+// rapido (recomendado): estable y ágil · muy-rapido: sin filtro casi (tiembla) · suave: muy estable con retraso
 function filtroSeguimiento(modo) {
-  if (modo === 'suave') return 'filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5';
-  if (modo === 'equilibrado') return 'filterMinCF: 0.0005; filterBeta: 10; warmupTolerance: 3; missTolerance: 5';
-  return 'filterMinCF: 0.001; filterBeta: 1000; warmupTolerance: 2; missTolerance: 5';
+  if (modo === 'muy-rapido') return 'filterMinCF: 0.001; filterBeta: 1000; warmupTolerance: 2; missTolerance: 5';
+  if (modo === 'suave') return 'filterMinCF: 0.0001; filterBeta: 0.01; warmupTolerance: 5; missTolerance: 5';
+  return 'filterMinCF: 0.0001; filterBeta: 10; warmupTolerance: 3; missTolerance: 5';
 }
 
 function construirEscena() {
