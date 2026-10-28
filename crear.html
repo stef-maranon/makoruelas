@@ -13,11 +13,11 @@
   body { margin:0; color:var(--texto); min-height:100vh;
     background:radial-gradient(1200px 500px at 50% -10%, #12306a 0%, transparent 60%), var(--fondo);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height:1.45; }
-  header { padding:28px 16px 8px; max-width:880px; margin:0 auto; }
+  header { padding:28px 16px 8px; max-width:1360px; margin:0 auto; }
   header h1 { margin:0; font-size:28px; letter-spacing:-.02em;
     background:linear-gradient(90deg, #fff, var(--acento2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
   header p { margin:6px 0 0; color:var(--suave); }
-  main { max-width:880px; margin:0 auto; padding:8px 16px 80px; }
+  main { max-width:1360px; margin:0 auto; padding:8px 16px 80px; }
   section { background:var(--panel); border:1px solid var(--linea); border-radius:16px; padding:20px; margin-top:18px;
     box-shadow:0 0 0 1px #3b82f60d, 0 12px 40px #0006; }
   h2 { margin:0 0 14px; font-size:18px; display:flex; gap:10px; align-items:center; }
@@ -43,6 +43,16 @@
   .btn.peq { padding:6px 10px; font-size:13px; }
   .btn:disabled { opacity:.5; cursor:default; }
   .foto { border:1px dashed #2b4580; border-radius:14px; padding:16px; margin-bottom:14px; }
+  /* Controles a la izquierda, escena fija a la derecha */
+  .foto-cuerpo { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.05fr); gap:20px; align-items:start; margin-top:12px; }
+  .foto-der { position:sticky; top:12px; }
+  .foto-der .escena { margin:0; }
+  .foto-der .e-escenario { max-height:calc(100vh - 120px); }
+  @media (max-width:900px) {
+    .foto-cuerpo { grid-template-columns:1fr; }
+    .foto-der { order:-1; top:0; z-index:10; background:var(--panel); padding-bottom:8px; }
+    .foto-der .e-escenario { max-height:46vh; }
+  }
   .foto-cab { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
   .foto-cab img { width:120px; height:120px; object-fit:cover; border-radius:10px; background:var(--campo); }
   .foto-cab .vacia { width:120px; height:120px; border-radius:10px; background:var(--campo); display:grid; place-items:center;
@@ -146,9 +156,9 @@
     <div style="margin-top:12px">
       <label for="seguimiento">Seguimiento al mover la foto</label>
       <select id="seguimiento">
-        <option value="rapido">Rápido: sigue la foto al instante (recomendado)</option>
-        <option value="equilibrado">Equilibrado</option>
-        <option value="suave">Suave: más estable pero con retraso</option>
+        <option value="rapido">Equilibrado: rápido y sin temblor (recomendado)</option>
+        <option value="muy-rapido">Máxima velocidad (puede temblar)</option>
+        <option value="suave">Muy suave (con algo de retraso)</option>
       </select>
     </div>
   </section>
@@ -275,9 +285,9 @@ function agregarFoto() {
       el('button', { class: 'quitar', onclick: () => {
         fotos.splice(fotos.indexOf(foto), 1); tarjeta.remove(); } }, 'Quitar foto')
     ),
-    foto.escena.raiz,
-    listaCapas,
-    agregar
+    el('div', { class: 'foto-cuerpo' },
+      el('div', { class: 'foto-izq' }, listaCapas, agregar),
+      el('div', { class: 'foto-der' }, foto.escena.raiz))
   );
   $('fotos').appendChild(tarjeta);
 }
