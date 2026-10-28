@@ -294,19 +294,8 @@ function crearCapa(c, id) {
     v.addEventListener('ended', () => { if (!v.loop) terminar(); });
     todosLosMedios.push(medio);
 
-    if (c.emerger === 'flotar' || c.aparicion === 'flotar') {
-      const altura = Number(c.altura ?? 0.15);
-      const capa = document.createElement('a-entity');
-      capa.setAttribute('animation__emerger',
-        `property: position; from: 0 0 0; to: 0 0 ${altura}; dur: ${c.duracion || 1000}; easing: easeOutBack; startEvents: emerger`);
-      capa.setAttribute('animation__crecer',
-        `property: scale; from: 0.9 0.9 0.9; to: ${c.crecer || 1.1} ${c.crecer || 1.1} 1; dur: ${c.duracion || 1000}; easing: easeOutCubic; startEvents: emerger`);
-      capa.appendChild(plano);
-      capa.reiniciarEfecto = () => { capa.setAttribute('position', '0 0 0'); capa.setAttribute('scale', '0.9 0.9 0.9'); };
-      return { el: capa, medio, efecto: capa };
-    }
-
-    if (c.emerger) {
+    // El video vive en una "raíz" con su posición y giro; los efectos se aplican dentro de ella
+    if (c.emerger === true || c.emerger === 'true') {
       // Efecto pop-up: el video se levanta desde la foto como un libro desplegable
       const angulo = Number(c.angulo ?? 90);
       const [px, , pz] = pos.split(/\s+/).map(Number);
@@ -324,7 +313,28 @@ function crearCapa(c, id) {
       bisagra.appendChild(plano);
       return { el: bisagra, medio, efecto: bisagra };
     }
-    return { el: plano, medio };
+
+    const raiz = document.createElement('a-entity');
+    raiz.setAttribute('position', pos);
+    raiz.setAttribute('rotation', rot);
+    plano.setAttribute('position', '0 0 0');
+    plano.setAttribute('rotation', '0 0 0');
+
+    if (c.emerger === 'flotar' || c.aparicion === 'flotar') {
+      // Sale hacia la cámara (en la dirección hacia donde mira el video)
+      const altura = Number(c.altura ?? 0.15);
+      const capa = document.createElement('a-entity');
+      capa.setAttribute('animation__emerger',
+        `property: position; from: 0 0 0; to: 0 0 ${altura}; dur: ${c.duracion || 1000}; easing: easeOutBack; startEvents: emerger`);
+      capa.setAttribute('animation__crecer',
+        `property: scale; from: 0.9 0.9 0.9; to: ${c.crecer || 1.1} ${c.crecer || 1.1} 1; dur: ${c.duracion || 1000}; easing: easeOutCubic; startEvents: emerger`);
+      capa.appendChild(plano);
+      capa.reiniciarEfecto = () => { capa.setAttribute('position', '0 0 0'); capa.setAttribute('scale', '0.9 0.9 0.9'); };
+      raiz.appendChild(capa);
+      return { el: raiz, medio, efecto: capa };
+    }
+    raiz.appendChild(plano);
+    return { el: raiz, medio };
   }
 
   if (c.tipo === 'audio') {
