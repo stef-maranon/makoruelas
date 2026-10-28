@@ -1,0 +1,33 @@
+{
+  "titulo": "PRUEBATRESD",
+  "descripcion": "Maikol siempre está contigo, amor",
+  "maxSimultaneos": 1,
+  "seguimiento": "rapido",
+  "objetivos": [
+    {
+      "nombre": "Foto 1",
+      "foto": "foto1.jpg",
+      "capas": [
+        {
+          "tipo": "video",
+          "src": "foto1-capa1.mp4",
+          "ancho": 1.3,
+          "alto": 1.7659,
+          "posicion": "0 0 0.27",
+          "rotacion": "0 0 0",
+          "alFinal": "repetir",
+          "reiniciar": true,
+          "recorte": [
+            0,
+            0.1155,
+            1,
+            0.8845
+          ],
+          "giro": 0,
+          "radio": 0.09,
+          "aparicion": "fundido"
+        }
+      ]
+    }
+  ]
+}
