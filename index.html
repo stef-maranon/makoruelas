@@ -108,7 +108,8 @@ AFRAME.registerComponent('video-ar', {
     suavidad: { default: 0.08 },
     recorte: { default: '0,0,1,1' },   // zona visible del video: izq, arriba, der, abajo (0 a 1)
     giro: { default: 0 },              // 0 | 90 | 180 | 270
-    fundido: { default: 0 }            // ms para aparecer con fundido (0 = sin fundido)
+    fundido: { default: 0 },           // ms para aparecer con fundido (0 = sin fundido)
+    radio: { default: 0 }              // esquinas redondeadas: 0 = rectas, 0.5 = máximo
   },
   init() {
     const THREE = AFRAME.THREE;
@@ -128,14 +129,16 @@ AFRAME.registerComponent('video-ar', {
         suave: { value: Number(d.suavidad) },
         rec: { value: new THREE.Vector4(r[0] || 0, r[1] || 0, r[2] ?? 1, r[3] ?? 1) },
         giro: { value: Math.round(Number(d.giro) / 90) % 4 },
-        opacidad: { value: 1 }
+        opacidad: { value: 1 },
+        radio: { value: Math.min(0.5, Math.max(0, Number(d.radio) || 0)) },
+        asp: { value: 1 }
       },
       vertexShader: `
         varying vec2 vUv;
         void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
         uniform sampler2D map; uniform int modo; uniform vec3 clave; uniform float tol; uniform float suave;
-        uniform vec4 rec; uniform int giro; uniform float opacidad;
+        uniform vec4 rec; uniform int giro; uniform float opacidad; uniform float radio; uniform float asp;
         varying vec2 vUv;
         vec2 croma(vec3 c) {
           return vec2(-0.169 * c.r - 0.331 * c.g + 0.5 * c.b, 0.5 * c.r - 0.419 * c.g - 0.081 * c.b);
@@ -157,6 +160,15 @@ AFRAME.registerComponent('video-ar', {
           } else if (modo == 2) {
             a = smoothstep(tol, tol + suave, distance(croma(c.rgb), croma(clave)));
           }
+          if (radio > 0.0) {
+            // Esquinas redondeadas (medidas en proporción al lado más corto)
+            vec2 mitad = vec2(0.5, 0.5 * asp);
+            vec2 p = (vUv - 0.5) * vec2(1.0, asp);
+            float r = radio * min(1.0, asp);
+            vec2 q = abs(p) - mitad + r;
+            float dd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+            a *= 1.0 - smoothstep(-0.004, 0.0, dd);
+          }
           a *= opacidad;
           if (a < 0.02) discard;
           gl_FragColor = vec4(c.rgb, a);
@@ -173,6 +185,8 @@ AFRAME.registerComponent('video-ar', {
   tick() {
     const m = this.el.getObject3D('mesh');
     if (m && m.material !== this.material) m.material = this.material;
+    const g = this.el.getAttribute('geometry');
+    if (g && g.width) this.material.uniforms.asp.value = g.height / g.width;
     if (this.t0 !== null) {
       const p = Math.min(1, (performance.now() - this.t0) / Number(this.data.fundido));
       this.material.uniforms.opacidad.value = p;
@@ -257,7 +271,8 @@ function crearCapa(c, id) {
     plano.setAttribute('video-ar',
       `video: #${v.id}; modo: ${c.quitarFondo || 'ninguno'}; ` +
       `tolerancia: ${c.tolerancia ?? (c.quitarFondo === 'negro' ? 0.1 : 0.12)}; ` +
-      `recorte: ${recorte}; giro: ${Number(c.giro) || 0}; fundido: ${c.aparicion === 'fundido' ? (c.fundido || 700) : 0}`);
+      `recorte: ${recorte}; giro: ${Number(c.giro) || 0}; fundido: ${c.aparicion === 'fundido' ? (c.fundido || 700) : 0}; ` +
+      `radio: ${Number(c.radio) || 0}`);
     if (!c.alto) {
       v.addEventListener('loadedmetadata', () => {
         if (v.videoWidth) plano.setAttribute('height', ancho * v.videoHeight / v.videoWidth);
