@@ -1,0 +1,21 @@
+{
+  "titulo": "Maikolito",
+  "descripcion": "Bibi cumple",
+  "maxSimultaneos": 1,
+  "objetivos": [
+    {
+      "nombre": "Foto 1",
+      "foto": "foto1.jpg",
+      "capas": [
+        {
+          "tipo": "video",
+          "src": "foto1-capa1.mp4",
+          "ancho": 1,
+          "posicion": "0 0 0",
+          "repetir": true,
+          "reiniciar": false
+        }
+      ]
+    }
+  ]
+}
