@@ -2,522 +2,694 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#070d1c">
-<title>Realidad Aumentada</title>
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estudio AR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-  :root { --acento:#3b82f6; --acento2:#22d3ee; --fondo:#070d1c; --texto:#e6eefc; --suave:#8ea3c4; }
+  :root { --acento:#3b82f6; --acento2:#22d3ee; --fondo:#070d1c; --panel:#0d1730; --campo:#0a1226; --hover:#13224a;
+    --texto:#e6eefc; --suave:#8ea3c4; --linea:#1d2c50; color-scheme:dark; }
   * { box-sizing:border-box; }
-  /* Fondo transparente: así se ve la cámara detrás del contenido */
-  html,body { margin:0; height:100%; overflow:hidden; background:transparent; color:var(--texto);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .hidden, .oculto { display:none !important; }
-
-  .pantalla { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
-    padding:24px; background:radial-gradient(circle at 50% 30%, #12306a 0%, var(--fondo) 70%); }
-  .tarjeta { max-width:380px; width:100%; text-align:center; }
-  .logo { width:72px; height:72px; margin:0 auto 20px; border-radius:20px; display:grid; place-items:center;
-    background:linear-gradient(135deg, #2563eb, var(--acento2)); font-size:34px; box-shadow:0 10px 40px #22d3ee55; }
-  h1 { font-size:26px; margin:0 0 10px; letter-spacing:-.02em; }
-  p { color:var(--suave); line-height:1.5; margin:0 0 22px; }
-  button.principal { width:100%; padding:16px; border:0; border-radius:14px; font-size:17px; font-weight:600;
-    background:linear-gradient(135deg, #2563eb, #0ea5e9); color:#fff; cursor:pointer; box-shadow:0 8px 24px #2563eb66; }
-  button.principal:disabled { opacity:.5; }
-  .nota { font-size:13px; margin-top:16px; }
-
-  /* Guía de escaneo */
-  #escaneando { position:fixed; inset:0; z-index:20; pointer-events:none; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:22px; }
-  .marco { width:70vw; max-width:320px; aspect-ratio:3/4; position:relative; }
-  .marco i { position:absolute; width:40px; height:40px; border:4px solid var(--acento2); filter:drop-shadow(0 0 6px #22d3ee); border-radius:6px; }
-  .marco i:nth-child(1){ top:0; left:0; border-right:0; border-bottom:0; }
-  .marco i:nth-child(2){ top:0; right:0; border-left:0; border-bottom:0; }
-  .marco i:nth-child(3){ bottom:0; left:0; border-right:0; border-top:0; }
-  .marco i:nth-child(4){ bottom:0; right:0; border-left:0; border-top:0; }
-  .marco::after { content:""; position:absolute; left:8%; right:8%; height:3px; background:var(--acento2);
-    box-shadow:0 0 18px var(--acento2); animation:barrido 2.2s ease-in-out infinite; }
-  @keyframes barrido { 0%,100%{ top:6% } 50%{ top:92% } }
-  .pildora { background:#07101fcc; border:1px solid #22d3ee55; padding:10px 18px; border-radius:99px; font-size:15px; backdrop-filter:blur(6px); }
-
-  /* Barra inferior */
-  #barra { position:fixed; left:16px; right:16px; bottom:max(20px, env(safe-area-inset-bottom)); z-index:30;
-    display:flex; gap:10px; justify-content:center; }
-  #barra button, #barra a { padding:12px 18px; border-radius:99px; border:0; font-size:15px; font-weight:600;
-    background:#07101fcc; color:#fff; text-decoration:none; backdrop-filter:blur(6px); border:1px solid #22d3ee44; }
-  #barra a { background:linear-gradient(135deg, #2563eb, #0ea5e9); border-color:transparent; }
-
+  body { margin:0; color:var(--texto); min-height:100vh;
+    background:radial-gradient(1200px 500px at 50% -10%, #12306a 0%, transparent 60%), var(--fondo);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height:1.45; }
+  header { padding:28px 16px 8px; max-width:880px; margin:0 auto; }
+  header h1 { margin:0; font-size:28px; letter-spacing:-.02em;
+    background:linear-gradient(90deg, #fff, var(--acento2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header p { margin:6px 0 0; color:var(--suave); }
+  main { max-width:880px; margin:0 auto; padding:8px 16px 80px; }
+  section { background:var(--panel); border:1px solid var(--linea); border-radius:16px; padding:20px; margin-top:18px;
+    box-shadow:0 0 0 1px #3b82f60d, 0 12px 40px #0006; }
+  h2 { margin:0 0 14px; font-size:18px; display:flex; gap:10px; align-items:center; }
+  h2 span { width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg, var(--acento), var(--acento2)); color:#fff; font-size:14px;
+    box-shadow:0 0 14px #3b82f680;
+    display:grid; place-items:center; flex:none; }
+  label { display:block; font-size:13px; font-weight:600; color:var(--suave); margin-bottom:4px; }
+  input[type=text], input[type=url], input[type=number], select {
+    width:100%; padding:10px 12px; border:1px solid var(--linea); border-radius:10px; font-size:15px; background:var(--campo); color:var(--texto); }
+  input:focus, select:focus { outline:none; border-color:var(--acento); box-shadow:0 0 0 3px #3b82f633; }
+  input[type=range] { accent-color:var(--acento); }
+  input[type=checkbox] { accent-color:var(--acento); }
+  input[type=file]::file-selector-button { background:var(--hover); color:var(--texto); border:1px solid var(--linea);
+    border-radius:8px; padding:6px 10px; margin-right:8px; cursor:pointer; }
+  input[type=file] { font-size:14px; max-width:100%; }
+  .fila { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; }
+  .check { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:500; color:var(--texto); }
+  button { font:inherit; cursor:pointer; }
+  .btn { padding:10px 16px; border-radius:10px; border:1px solid var(--linea); background:var(--campo); color:var(--texto); font-weight:600; }
+  .btn:hover:not(:disabled) { background:var(--hover); border-color:#2b4580; }
+  .btn.prim { background:linear-gradient(135deg, #2563eb, #0ea5e9); border-color:transparent; color:#fff; box-shadow:0 6px 20px #2563eb55; }
+  .btn.prim:hover:not(:disabled) { background:linear-gradient(135deg, #3b82f6, #22d3ee); }
+  .btn.peq { padding:6px 10px; font-size:13px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .foto { border:1px dashed #2b4580; border-radius:14px; padding:16px; margin-bottom:14px; }
+  .foto-cab { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+  .foto-cab img { width:120px; height:120px; object-fit:cover; border-radius:10px; background:var(--campo); }
+  .foto-cab .vacia { width:120px; height:120px; border-radius:10px; background:var(--campo); display:grid; place-items:center;
+    color:var(--suave); font-size:12px; text-align:center; }
+  .capa { background:var(--campo); border:1px solid var(--linea); border-radius:12px; padding:12px; margin-top:10px; }
+  .capa-cab { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:700; }
+  .agregar { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .barra-prog { height:10px; background:var(--campo); border-radius:99px; overflow:hidden; margin:12px 0; }
+  .barra-prog div { height:100%; width:0; background:linear-gradient(90deg, var(--acento), var(--acento2)); box-shadow:0 0 12px var(--acento2); transition:width .2s; }
+  .aviso { font-size:13px; color:#fbbf24; margin-top:6px; }
+  .ayuda { font-size:13px; color:var(--suave); margin-top:4px; }
+  #qr { margin-top:16px; display:inline-block; padding:12px; background:#fff; border:1px solid var(--linea); border-radius:12px; }
+  code { background:var(--campo); padding:2px 6px; border-radius:6px; }
+  .oculto { display:none !important; }
+  .editor { display:grid; grid-template-columns:minmax(200px, 300px) 1fr; gap:18px; grid-column:1/-1; margin-top:6px; }
+  @media (max-width:640px) { .editor { grid-template-columns:1fr; } }
+  .escenario { position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:4px; touch-action:none;
+    cursor:grab; background:repeating-conic-gradient(#14213f 0 25%, #0b1429 0 50%) 0 0/16px 16px; }
+  .escenario:active { cursor:grabbing; }
+  .escenario .capa-prev { position:absolute; inset:0; overflow:hidden; }
+  .escenario video { position:absolute; left:50%; top:50%; max-width:none; pointer-events:none; }
+  .escenario img.calco { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; }
+  .escenario .borde { position:absolute; inset:0; border:2px solid var(--acento2); box-shadow:0 0 12px #22d3ee66; border-radius:2px; pointer-events:none; }
+  .escenario .vacio { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:16px;
+    color:var(--suave); font-size:13px; }
+  .grupo { border-top:1px solid var(--linea); padding-top:10px; margin-top:10px; }
+  .grupo:first-child { border-top:0; padding-top:0; margin-top:0; }
+  .grupo h4 { margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--suave); }
+  .botones { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .rango { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .rango input { flex:1; }
+  .rango span { min-width:46px; text-align:right; font-variant-numeric:tabular-nums; }
+  a { color:var(--acento2); }
+  .quitar { color:#f87171; background:none; border:0; font-weight:600; }
 </style>
 </head>
 <body>
+<header>
+  <h1>✦ Estudio AR</h1>
+  <p>Sube tus fotos, asígnales video, 3D, música o un enlace, y descarga tu experiencia lista para publicar.</p>
+</header>
 
-<div id="inicio" class="pantalla">
-  <div class="tarjeta">
-    <div class="logo">✦</div>
-    <h1 id="titulo">Realidad aumentada</h1>
-    <p id="descripcion">Apunta la cámara a la imagen y mira cómo cobra vida.</p>
-    <button id="btnComenzar" class="principal" disabled>Cargando…</button>
-    <p class="nota">Te pediremos permiso para usar la cámara. Sube el volumen 🔊</p>
-  </div>
-</div>
+<main>
+  <section>
+    <h2><span>1</span>Proyecto</h2>
+    <div class="fila">
+      <div>
+        <label for="titulo">Título (lo verá el público)</label>
+        <input type="text" id="titulo" placeholder="Exposición Primavera 2026">
+      </div>
+      <div>
+        <label for="slug">Nombre corto (va en el enlace)</label>
+        <input type="text" id="slug" placeholder="primavera">
+        <div class="ayuda">Solo letras, números y guiones.</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label for="descripcion">Mensaje de bienvenida (opcional)</label>
+      <input type="text" id="descripcion" placeholder="Apunta tu cámara a cualquier obra de la sala.">
+    </div>
+    <div style="margin-top:12px">
+      <label for="seguimiento">Seguimiento al mover la foto</label>
+      <select id="seguimiento">
+        <option value="rapido">Rápido: sigue la foto al instante (recomendado)</option>
+        <option value="equilibrado">Equilibrado</option>
+        <option value="suave">Suave: más estable pero con retraso</option>
+      </select>
+    </div>
+  </section>
 
-<div id="error" class="pantalla oculto">
-  <div class="tarjeta">
-    <div class="logo">!</div>
-    <h1 id="errorTitulo">Algo salió mal</h1>
-    <p id="errorTexto"></p>
-  </div>
-</div>
+  <section>
+    <h2><span>2</span>Fotos y contenido</h2>
+    <p class="ayuda" style="margin-top:-6px">Cada foto es un "disparador". Funcionan mejor las imágenes con mucho detalle y contraste; evita fondos lisos o repetitivos.</p>
+    <div id="fotos"></div>
+    <button class="btn" id="btnAgregarFoto">+ Agregar foto</button>
+  </section>
 
-<!-- MindAR muestra/oculta este elemento mientras busca la imagen -->
-<div id="escaneando" class="hidden">
-  <div class="marco"><i></i><i></i><i></i><i></i></div>
-  <div class="pildora">Apunta a la imagen</div>
-</div>
+  <section>
+    <h2><span>3</span>Generar</h2>
+    <p class="ayuda" style="margin-top:-6px">Se analiza cada foto aquí mismo en tu navegador (puede tardar de 10 segundos a un par de minutos).</p>
+    <button class="btn prim" id="btnGenerar">Generar y descargar proyecto (.zip)</button>
+    <div class="barra-prog oculto" id="prog"><div></div></div>
+    <div id="estado" class="ayuda"></div>
+  </section>
 
-<div id="barra" class="oculto">
-  <button id="btnSonido" class="oculto">🔇 Activar sonido</button>
-  <a id="btnEnlace" class="oculto" target="_blank" rel="noopener"></a>
-</div>
-
-<div id="medios" style="display:none"></div>
+  <section>
+    <h2><span>4</span>Enlace y código QR</h2>
+    <div class="fila">
+      <div>
+        <label for="baseUrl">Dirección de tu sitio</label>
+        <input type="url" id="baseUrl" placeholder="https://tuusuario.github.io/realidad-aumentada/">
+      </div>
+      <div>
+        <label for="slugQr">Proyecto</label>
+        <input type="text" id="slugQr" placeholder="primavera">
+      </div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn prim" id="btnQr">Crear QR</button>
+      <button class="btn" id="btnDescargarQr" disabled>Descargar QR (PNG)</button>
+    </div>
+    <p id="enlaceFinal" class="ayuda"></p>
+    <div id="qr" style="display:none"></div>
+  </section>
+</main>
 
 <script>
-/* ---------- Componente: reproduce animaciones incluidas en modelos .glb ---------- */
-AFRAME.registerComponent('animar-modelo', {
-  init() {
-    this.mixer = null;
-    this.el.addEventListener('model-loaded', (e) => {
-      const modelo = e.detail.model;
-      const clips = modelo.animations || [];
-      if (!clips.length) return;
-      this.mixer = new AFRAME.THREE.AnimationMixer(modelo);
-      clips.forEach((c) => this.mixer.clipAction(c).play());
-    });
-  },
-  tick(t, dt) { if (this.mixer) this.mixer.update(dt / 1000); }
-});
-
-/* ---------- Componente: video con recorte, giro, fondo transparente y fundido ---------- */
-AFRAME.registerComponent('video-ar', {
-  schema: {
-    video: { type: 'selector' },
-    modo: { default: 'ninguno' },      // ninguno | negro | verde | azul
-    tolerancia: { default: 0.1 },
-    suavidad: { default: 0.08 },
-    recorte: { default: '0,0,1,1' },   // zona visible del video: izq, arriba, der, abajo (0 a 1)
-    giro: { default: 0 },              // 0 | 90 | 180 | 270
-    fundido: { default: 0 },           // ms para aparecer con fundido (0 = sin fundido)
-    radio: { default: 0 }              // esquinas redondeadas: 0 = rectas, 0.5 = máximo
-  },
-  init() {
-    const THREE = AFRAME.THREE;
-    const d = this.data;
-    const tex = new THREE.VideoTexture(d.video);
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.generateMipmaps = false;
-    const r = String(d.recorte).split(',').map(Number);
-    const modo = d.modo === 'negro' ? 1 : (d.modo === 'verde' || d.modo === 'azul') ? 2 : 0;
-    this.material = new THREE.ShaderMaterial({
-      uniforms: {
-        map: { value: tex },
-        modo: { value: modo },
-        clave: { value: d.modo === 'azul' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0) },
-        tol: { value: Number(d.tolerancia) },
-        suave: { value: Number(d.suavidad) },
-        rec: { value: new THREE.Vector4(r[0] || 0, r[1] || 0, r[2] ?? 1, r[3] ?? 1) },
-        giro: { value: Math.round(Number(d.giro) / 90) % 4 },
-        opacidad: { value: 1 },
-        radio: { value: Math.min(0.5, Math.max(0, Number(d.radio) || 0)) },
-        asp: { value: 1 }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: `
-        uniform sampler2D map; uniform int modo; uniform vec3 clave; uniform float tol; uniform float suave;
-        uniform vec4 rec; uniform int giro; uniform float opacidad; uniform float radio; uniform float asp;
-        varying vec2 vUv;
-        vec2 croma(vec3 c) {
-          return vec2(-0.169 * c.r - 0.331 * c.g + 0.5 * c.b, 0.5 * c.r - 0.419 * c.g - 0.081 * c.b);
-        }
-        void main() {
-          // Punto en el video ya girado (coordenadas de arriba hacia abajo)
-          float ru = mix(rec.x, rec.z, vUv.x);
-          float rv = mix(rec.y, rec.w, 1.0 - vUv.y);
-          vec2 o;
-          if (giro == 1) o = vec2(rv, 1.0 - ru);
-          else if (giro == 2) o = vec2(1.0 - ru, 1.0 - rv);
-          else if (giro == 3) o = vec2(1.0 - rv, ru);
-          else o = vec2(ru, rv);
-          if (o.x < 0.0 || o.x > 1.0 || o.y < 0.0 || o.y > 1.0) discard;
-          vec4 c = texture2D(map, vec2(o.x, 1.0 - o.y));
-          float a = 1.0;
-          if (modo == 1) {
-            a = smoothstep(tol, tol + suave, max(c.r, max(c.g, c.b)));
-          } else if (modo == 2) {
-            a = smoothstep(tol, tol + suave, distance(croma(c.rgb), croma(clave)));
-          }
-          if (radio > 0.0) {
-            // Esquinas redondeadas (medidas en proporción al lado más corto)
-            vec2 mitad = vec2(0.5, 0.5 * asp);
-            vec2 p = (vUv - 0.5) * vec2(1.0, asp);
-            float r = radio * min(1.0, asp);
-            vec2 q = abs(p) - mitad + r;
-            float dd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-            a *= 1.0 - smoothstep(-0.004, 0.0, dd);
-          }
-          a *= opacidad;
-          if (a < 0.02) discard;
-          gl_FragColor = vec4(c.rgb, a);
-        }`,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    });
-    this.t0 = null;
-    this.el.addEventListener('aparecer', () => {
-      if (Number(this.data.fundido) > 0) { this.material.uniforms.opacidad.value = 0; this.t0 = performance.now(); }
-    });
-  },
-  tick() {
-    const m = this.el.getObject3D('mesh');
-    if (m && m.material !== this.material) m.material = this.material;
-    const g = this.el.getAttribute('geometry');
-    if (g && g.width) this.material.uniforms.asp.value = g.height / g.width;
-    if (this.t0 !== null) {
-      const p = Math.min(1, (performance.now() - this.t0) / Number(this.data.fundido));
-      this.material.uniforms.opacidad.value = p;
-      if (p >= 1) this.t0 = null;
-    }
-  }
-});
-
-/* ---------- Configuración ---------- */
-const params = new URLSearchParams(location.search);
-const proyecto = (params.get('p') || '').replace(/[^a-zA-Z0-9_-]/g, '');
-let base = `proyectos/${proyecto}/`;
 const $ = (id) => document.getElementById(id);
+const fotos = [];
+let contador = 0;
 
-let config = null;
-let escena = null;
-const todosLosMedios = [];     // audio y video de todas las fotos
-const visibles = new Map();    // índice de foto -> datos
+const TIPOS = {
+  video:  { nombre: '🎬 Video',    accept: 'video/mp4,video/webm,video/quicktime' },
+  audio:  { nombre: '🎵 Música',   accept: 'audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg' },
+  modelo: { nombre: '🧊 Modelo 3D', accept: '.glb' },
+  imagen: { nombre: '🖼️ Imagen',   accept: 'image/png,image/jpeg,image/webp,image/gif' },
+  enlace: { nombre: '🔗 Enlace',   accept: null },
+};
 
-function mostrarError(titulo, texto) {
-  $('inicio').classList.add('oculto');
-  $('errorTitulo').textContent = titulo;
-  $('errorTexto').textContent = texto;
-  $('error').classList.remove('oculto');
+function slugify(t) {
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+$('titulo').addEventListener('input', () => {
+  if (!$('slug').dataset.tocado) $('slug').value = slugify($('titulo').value);
+  $('slugQr').value = $('slug').value;
+});
+$('slug').addEventListener('input', () => {
+  $('slug').dataset.tocado = '1';
+  $('slug').value = slugify($('slug').value);
+  $('slugQr').value = $('slug').value;
+});
+
+function el(tag, attrs = {}, ...hijos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  hijos.flat().forEach((h) => e.append(h instanceof Node ? h : document.createTextNode(h)));
+  return e;
 }
 
-function ruta(src) {
-  if (!src) return '';
-  return /^(https?:)?\/\//.test(src) ? src : base + src;
+function campo(etiqueta, input, ayuda) {
+  return el('div', {}, el('label', {}, etiqueta), input, ayuda ? el('div', { class: 'ayuda' }, ayuda) : '');
 }
 
-async function cargar() {
-  if (!proyecto) {
-    return mostrarError('Escanea un código QR',
-      'Este enlace no indica qué experiencia abrir. Usa el QR o el enlace que te compartieron.');
-  }
-  // Busca el proyecto en "proyectos/nombre/" y, si no está, en "nombre/"
-  for (const intento of [`proyectos/${proyecto}/`, `${proyecto}/`]) {
-    try {
-      const r = await fetch(intento + 'config.json', { cache: 'no-cache' });
-      if (!r.ok) continue;
-      config = await r.json();
-      base = intento;
-      break;
-    } catch (e) { /* probar la siguiente ruta */ }
-  }
-  if (!config) {
-    return mostrarError('No encontramos esta experiencia',
-      `Revisa que exista la carpeta "proyectos/${proyecto}" con su config.json.`);
-  }
-  if (config.titulo) { $('titulo').textContent = config.titulo; document.title = config.titulo; }
-  if (config.descripcion) $('descripcion').textContent = config.descripcion;
-  construirEscena();
-}
+function agregarFoto() {
+  const id = ++contador;
+  const foto = { id, archivo: null, capas: [], aspecto: 4 / 3, url: null, alCambiar: [] };
+  fotos.push(foto);
 
-/* ---------- Capas ---------- */
-function crearCapa(c, id) {
-  const pos = c.posicion || '0 0 0';
-  const rot = c.rotacion || '0 0 0';
+  const vista = el('div', { class: 'vacia' }, 'Sin foto');
+  const inputFoto = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp' });
+  const listaCapas = el('div');
+  const nombre = el('input', { type: 'text', placeholder: 'Ej. Obra 1 — Atardecer' });
+  foto.nombreInput = nombre;
 
-  if (c.tipo === 'video') {
-    const alFinal = c.alFinal || (c.repetir === false ? 'parar' : 'repetir');
-    const v = document.createElement('video');
-    v.id = 'v' + id;
-    v.src = ruta(c.src);
-    v.loop = alFinal === 'repetir' && c.fin == null;
-    v.muted = true;
-    v.preload = 'auto';
-    v.crossOrigin = 'anonymous';
-    v.setAttribute('playsinline', '');
-    v.setAttribute('webkit-playsinline', '');
-    $('medios').appendChild(v);
-
-    const ancho = Number(c.ancho) || 1;
-    const plano = document.createElement('a-plane');
-    plano.setAttribute('width', ancho);
-    plano.setAttribute('height', c.alto || ancho * 0.5625);
-    plano.setAttribute('position', pos);
-    plano.setAttribute('rotation', rot);
-    plano.setAttribute('material', 'shader: flat; transparent: true');
-    const recorte = Array.isArray(c.recorte) ? c.recorte.join(',') : '0,0,1,1';
-    plano.setAttribute('video-ar',
-      `video: #${v.id}; modo: ${c.quitarFondo || 'ninguno'}; ` +
-      `tolerancia: ${c.tolerancia ?? (c.quitarFondo === 'negro' ? 0.1 : 0.12)}; ` +
-      `recorte: ${recorte}; giro: ${Number(c.giro) || 0}; fundido: ${c.aparicion === 'fundido' ? (c.fundido || 700) : 0}; ` +
-      `radio: ${Number(c.radio) || 0}`);
-    if (!c.alto) {
-      v.addEventListener('loadedmetadata', () => {
-        if (v.videoWidth) plano.setAttribute('height', ancho * v.videoHeight / v.videoWidth);
-      });
-    }
-
-    // Tiempos: inicio, fin, velocidad y qué pasa al terminar
-    const inicio = Number(c.inicio) || 0;
-    const fin = c.fin != null ? Number(c.fin) : null;
-    const medio = { el: v, reiniciar: !!c.reiniciar, inicio, fin, alFinal, plano,
-      velocidad: Number(c.velocidad) || 1, terminado: false };
-    const terminar = () => {
-      if (alFinal === 'repetir') { v.currentTime = inicio; v.play().catch(() => {}); return; }
-      v.pause();
-      medio.terminado = true;
-      if (alFinal === 'desaparecer') plano.setAttribute('visible', false);
-    };
-    v.addEventListener('timeupdate', () => { if (fin != null && v.currentTime >= fin && !medio.terminado) terminar(); });
-    v.addEventListener('ended', () => { if (!v.loop) terminar(); });
-    todosLosMedios.push(medio);
-
-    if (c.emerger === 'flotar' || c.aparicion === 'flotar') {
-      const altura = Number(c.altura ?? 0.15);
-      const capa = document.createElement('a-entity');
-      capa.setAttribute('animation__emerger',
-        `property: position; from: 0 0 0; to: 0 0 ${altura}; dur: ${c.duracion || 1000}; easing: easeOutBack; startEvents: emerger`);
-      capa.setAttribute('animation__crecer',
-        `property: scale; from: 0.9 0.9 0.9; to: ${c.crecer || 1.1} ${c.crecer || 1.1} 1; dur: ${c.duracion || 1000}; easing: easeOutCubic; startEvents: emerger`);
-      capa.appendChild(plano);
-      capa.reiniciarEfecto = () => { capa.setAttribute('position', '0 0 0'); capa.setAttribute('scale', '0.9 0.9 0.9'); };
-      return { el: capa, medio, efecto: capa };
-    }
-
-    if (c.emerger) {
-      // Efecto pop-up: el video se levanta desde la foto como un libro desplegable
-      const angulo = Number(c.angulo ?? 90);
-      const [px, , pz] = pos.split(/\s+/).map(Number);
-      const bisagra = document.createElement('a-entity');
-      bisagra.setAttribute('position', `${px || 0} ${c.base ?? -0.35} ${pz || 0.01}`);
-      bisagra.setAttribute('rotation', '0 0 0');
-      bisagra.setAttribute('animation__emerger',
-        `property: rotation; from: 0 0 0; to: ${angulo} 0 0; dur: ${c.duracion || 1100}; easing: easeOutBack; startEvents: emerger`);
-      bisagra.setAttribute('animation__crecer',
-        `property: scale; from: 0.2 0.2 0.2; to: 1 1 1; dur: ${c.duracion || 1100}; easing: easeOutCubic; startEvents: emerger`);
-      const subir = () => plano.setAttribute('position', `0 ${Number(plano.getAttribute('height')) / 2} 0`);
-      plano.setAttribute('position', `0 ${(c.alto || ancho * 0.5625) / 2} 0`);
-      plano.setAttribute('rotation', '0 0 0');
-      v.addEventListener('loadedmetadata', () => setTimeout(subir, 0));
-      bisagra.appendChild(plano);
-      return { el: bisagra, medio, efecto: bisagra };
-    }
-    return { el: plano, medio };
-  }
-
-  if (c.tipo === 'audio') {
-    const a = document.createElement('audio');
-    a.src = ruta(c.src);
-    a.loop = c.repetir !== false;
-    a.preload = 'auto';
-    a.volume = c.volumen != null ? Number(c.volumen) : 1;
-    $('medios').appendChild(a);
-    const medio = { el: a, reiniciar: !!c.reiniciar };
-    todosLosMedios.push(medio);
-    return { medio };
-  }
-
-  if (c.tipo === 'modelo') {
-    const envoltura = document.createElement('a-entity');
-    envoltura.setAttribute('position', pos);
-    envoltura.setAttribute('rotation', rot);
-    const m = document.createElement('a-gltf-model');
-    m.setAttribute('src', ruta(c.src));
-    const s = Number(c.escala) || 0.3;
-    m.setAttribute('scale', `${s} ${s} ${s}`);
-    if (c.animar !== false) m.setAttribute('animar-modelo', '');
-    if (c.girar) m.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear');
-    envoltura.appendChild(m);
-    return { el: envoltura };
-  }
-
-  if (c.tipo === 'imagen') {
-    const ancho = Number(c.ancho) || 1;
-    const img = document.createElement('a-image');
-    img.setAttribute('src', ruta(c.src));
-    img.setAttribute('width', ancho);
-    img.setAttribute('height', c.alto || ancho);
-    img.setAttribute('position', pos);
-    img.setAttribute('rotation', rot);
-    img.setAttribute('material', 'transparent: true; alphaTest: 0.01; shader: flat');
-    if (!c.alto) {
+  inputFoto.addEventListener('change', () => {
+    foto.archivo = inputFoto.files[0] || null;
+    if (foto.archivo) {
+      foto.url = URL.createObjectURL(foto.archivo);
+      const img = el('img', { src: foto.url, alt: '' });
+      (foto.vista || vista).replaceWith(img);
+      foto.vista = img;
       const probe = new Image();
-      probe.onload = () => img.setAttribute('height', ancho * probe.naturalHeight / probe.naturalWidth);
-      probe.src = ruta(c.src);
+      probe.onload = () => {
+        foto.aspecto = probe.naturalHeight / probe.naturalWidth;
+        foto.alCambiar.forEach((fn) => fn());
+      };
+      probe.src = foto.url;
     }
-    return { el: img };
-  }
+  });
 
-  if (c.tipo === 'enlace' && c.url) {
-    return { enlace: { texto: c.texto || 'Ver más', url: c.url } };
-  }
-  return {};
+  const agregar = el('div', { class: 'agregar' },
+    Object.entries(TIPOS).map(([tipo, t]) =>
+      el('button', { class: 'btn peq', onclick: () => agregarCapa(foto, tipo, listaCapas) }, '+ ' + t.nombre)));
+
+  const tarjeta = el('div', { class: 'foto' },
+    el('div', { class: 'foto-cab' },
+      vista,
+      el('div', { style: 'flex:1; min-width:220px' },
+        campo('Foto disparadora', inputFoto, 'JPG o PNG, idealmente la misma imagen que imprimirás.'),
+        el('div', { style: 'margin-top:10px' }, campo('Nombre interno (opcional)', nombre)),
+      ),
+      el('button', { class: 'quitar', onclick: () => {
+        fotos.splice(fotos.indexOf(foto), 1); tarjeta.remove(); } }, 'Quitar foto')
+    ),
+    listaCapas,
+    agregar
+  );
+  $('fotos').appendChild(tarjeta);
 }
 
-// rapido: responde al instante (puede temblar un poco) · suave: estable pero con retraso
-function filtroSeguimiento(modo) {
-  if (modo === 'suave') return 'filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5';
-  if (modo === 'equilibrado') return 'filterMinCF: 0.0005; filterBeta: 10; warmupTolerance: 3; missTolerance: 5';
-  return 'filterMinCF: 0.001; filterBeta: 1000; warmupTolerance: 2; missTolerance: 5';
-}
+function agregarCapa(foto, tipo, contenedor) {
+  const capa = { tipo, archivo: null, opciones: {} };
+  foto.capas.push(capa);
+  const o = capa.opciones;
+  const cuerpo = el('div', { class: 'fila' });
 
-function construirEscena() {
-  const objetivos = config.objetivos || [];
-  escena = document.createElement('a-scene');
-  escena.setAttribute('mindar-image',
-    `imageTargetSrc: ${base}targets.mind; autoStart: false; uiLoading: no; uiScanning: #escaneando; uiError: yes; ` +
-    `maxTrack: ${config.maxSimultaneos || 1}; ${filtroSeguimiento(config.seguimiento)}`);
-  escena.setAttribute('color-space', 'sRGB');
-  escena.setAttribute('renderer', 'colorManagement: true; antialias: true; alpha: true');
-  escena.setAttribute('vr-mode-ui', 'enabled: false');
-  escena.setAttribute('device-orientation-permission-ui', 'enabled: false');
-
-  const cam = document.createElement('a-camera');
-  cam.setAttribute('position', '0 0 0');
-  cam.setAttribute('look-controls', 'enabled: false');
-  escena.appendChild(cam);
-
-  const luzA = document.createElement('a-entity');
-  luzA.setAttribute('light', 'type: ambient; intensity: 1.2');
-  escena.appendChild(luzA);
-  const luzD = document.createElement('a-entity');
-  luzD.setAttribute('light', 'type: directional; intensity: 1.5');
-  luzD.setAttribute('position', '0.5 1 1');
-  escena.appendChild(luzD);
-
-  objetivos.forEach((obj, i) => {
-    const ent = document.createElement('a-entity');
-    ent.setAttribute('mindar-image-target', `targetIndex: ${i}`);
-    const datos = { medios: [], enlace: null, efectos: [] };
-    (obj.capas || []).forEach((capa, j) => {
-      const r = crearCapa(capa, `${i}_${j}`);
-      if (r.el) ent.appendChild(r.el);
-      if (r.medio) datos.medios.push(r.medio);
-      if (r.enlace) datos.enlace = r.enlace;
-      if (r.efecto) datos.efectos.push(r.efecto);
+  if (TIPOS[tipo].accept) {
+    const f = el('input', { type: 'file', accept: TIPOS[tipo].accept });
+    const aviso = el('div', { class: 'aviso' });
+    f.addEventListener('change', () => {
+      capa.archivo = f.files[0] || null;
+      if (capa.alArchivo) capa.alArchivo();
+      const mb = capa.archivo ? capa.archivo.size / 1048576 : 0;
+      const limite = tipo === 'video' ? 25 : tipo === 'modelo' ? 15 : 10;
+      aviso.textContent = mb > limite
+        ? `Pesa ${mb.toFixed(1)} MB. Se recomienda menos de ${limite} MB para que cargue rápido en celular.` : '';
     });
-    ent.addEventListener('targetFound', () => alEncontrar(i, datos));
-    ent.addEventListener('targetLost', () => alPerder(i, datos));
-    escena.appendChild(ent);
-  });
-
-  escena.addEventListener('loaded', () => {
-    $('btnComenzar').disabled = false;
-    $('btnComenzar').textContent = 'Comenzar';
-  });
-  escena.addEventListener('arError', () => {
-    mostrarError('No pudimos abrir la cámara',
-      'Revisa que diste permiso de cámara y que abriste el enlace en Safari o Chrome (no dentro de Instagram o WhatsApp).');
-  });
-  document.body.appendChild(escena);
-}
-
-/* ---------- Reproducción ---------- */
-function reproducir(medio) {
-  const el = medio.el;
-  const inicio = medio.inicio || 0;
-  if (medio.terminado) {
-    if (!medio.reiniciar) return;           // se quedó detenido: no vuelve a empezar
-    medio.terminado = false;
-    el.currentTime = inicio;
+    cuerpo.append(el('div', { style: 'grid-column:1/-1' }, f, aviso));
   }
-  if (medio.plano) medio.plano.setAttribute('visible', true);
-  if (medio.reiniciar || el.currentTime < inicio || (medio.fin != null && el.currentTime >= medio.fin)) {
-    el.currentTime = inicio;
+
+  const num = (clave, etiqueta, valor, paso, ayuda) => {
+    o[clave] = valor;
+    const i = el('input', { type: 'number', value: valor, step: paso });
+    i.addEventListener('input', () => { o[clave] = i.value; });
+    return campo(etiqueta, i, ayuda);
+  };
+  const chk = (clave, etiqueta, valor) => {
+    o[clave] = valor;
+    const i = el('input', { type: 'checkbox' }); i.checked = valor;
+    i.addEventListener('change', () => { o[clave] = i.checked; });
+    return el('label', { class: 'check' }, i, etiqueta);
+  };
+  const txt = (clave, etiqueta, ph, tipoInput = 'text') => {
+    o[clave] = '';
+    const i = el('input', { type: tipoInput, placeholder: ph });
+    i.addEventListener('input', () => { o[clave] = i.value; });
+    return campo(etiqueta, i);
+  };
+
+  if (tipo === 'video') editorVideo(foto, capa, o, cuerpo, chk);
+  if (tipo === 'audio') {
+    cuerpo.append(
+      num('volumen', 'Volumen (0 a 1)', 1, 0.1),
+      el('div', {}, chk('repetir', 'Repetir en bucle', true), chk('reiniciar', 'Empezar desde el inicio cada vez', false)));
   }
-  if (medio.velocidad) el.playbackRate = medio.velocidad;
-  if (medio.plano) medio.plano.emit('aparecer');
-  const p = el.play();
-  if (p && p.catch) {
-    p.catch(() => {
-      // El navegador bloqueó el sonido: reproducimos en silencio y ofrecemos activarlo
-      el.muted = true;
-      el.play().catch(() => {});
-      $('btnSonido').classList.remove('oculto');
-      actualizarBarra();
-    });
+  if (tipo === 'modelo') {
+    o.orientacion = 'pared';
+    const sel = el('select', {},
+      el('option', { value: 'pared' }, 'Foto en pared (modelo de pie)'),
+      el('option', { value: 'mesa' }, 'Foto sobre mesa (modelo parado encima)'));
+    sel.addEventListener('change', () => { o.orientacion = sel.value; });
+    cuerpo.append(
+      num('escala', 'Tamaño', 0.3, 0.05, 'Prueba entre 0.1 y 1.'),
+      num('frente', 'Separación de la foto', 0.1, 0.05),
+      campo('Orientación', sel),
+      el('div', {}, chk('animar', 'Reproducir animación del modelo', true), chk('girar', 'Girar lentamente', false)));
   }
+  if (tipo === 'imagen') {
+    cuerpo.append(
+      num('ancho', 'Ancho (1 = ancho de la foto)', 1, 0.05, 'Usa PNG con transparencia para marcos o recortes.'),
+      num('frente', 'Separación de la foto', 0.02, 0.01));
+  }
+  if (tipo === 'enlace') {
+    cuerpo.append(txt('texto', 'Texto del botón', 'Comprar obra'), txt('url', 'Dirección', 'https://…', 'url'));
+  }
+
+  const caja = el('div', { class: 'capa' },
+    el('div', { class: 'capa-cab' }, TIPOS[tipo].nombre,
+      el('button', { class: 'quitar', onclick: () => {
+        foto.capas.splice(foto.capas.indexOf(capa), 1); caja.remove(); } }, 'Quitar')),
+    cuerpo);
+  contenedor.appendChild(caja);
 }
 
-function alEncontrar(i, datos) {
-  visibles.set(i, datos);
-  datos.efectos.forEach((e) => {
-    if (e.reiniciarEfecto) e.reiniciarEfecto(); else e.setAttribute('rotation', '0 0 0');
-    e.emit('emerger');
+
+/* ---------- Editor de video con vista previa ---------- */
+// Zona visible del video (ya girado) cuando se encuadra dentro de la foto. Devuelve [izq, arriba, der, abajo] de 0 a 1.
+function calcularRecorte(o, vw, vh, aspecto) {
+  const W = 1, H = aspecto;
+  const girado = o.giro % 180 !== 0;
+  const ew = girado ? vh : vw, eh = girado ? vw : vh;
+  const s = Math.max(W / ew, H / eh) * o.zoom;
+  const Dw = ew * s, Dh = eh * s;
+  const izq = W / 2 + o.x * W - Dw / 2, arriba = H / 2 + o.y * H - Dh / 2;
+  const r = (n) => Math.round(n * 10000) / 10000;
+  return [r(-izq / Dw), r(-arriba / Dh), r((W - izq) / Dw), r((H - arriba) / Dh)];
+}
+
+function editorVideo(foto, capa, o, cuerpo, chk) {
+  Object.assign(o, { zoom: 1, x: 0, y: 0, giro: 0, inicio: 0, fin: null, velocidad: 1, alFinal: 'repetir',
+    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, calco: 0.35, tamano: 1, radio: 0 });
+
+  // Vista previa: tiene la forma exacta de la foto
+  const vid = el('video', { playsinline: true, loop: true });
+  vid.muted = true;
+  const capaPrev = el('div', { class: 'capa-prev' }, vid);
+  const calco = el('img', { class: 'calco', alt: '' });
+  const vacio = el('div', { class: 'vacio' }, 'Sube la foto y el video para acomodarlo aquí');
+  const borde = el('div', { class: 'borde' });
+  const escenario = el('div', { class: 'escenario' }, capaPrev, calco, borde, vacio);
+  // La vista previa es el área del video; la foto (borde naranja) queda adentro, más chica si el video es más grande
+  const ubicarFoto = () => {
+    const pct = 100 / o.tamano, m = (100 - pct) / 2;
+    for (const n of [calco, borde]) {
+      n.style.inset = 'auto'; n.style.left = m + '%'; n.style.top = m + '%';
+      n.style.width = pct + '%'; n.style.height = pct + '%';
+    }
+    capaPrev.style.borderRadius = o.radio * Math.min(escenario.clientWidth, escenario.clientHeight) + 'px';
+  };
+
+  const ajustarForma = () => {
+    escenario.style.aspectRatio = `1 / ${foto.aspecto}`;
+    if (foto.url) { calco.src = foto.url; calco.style.display = ''; } else calco.style.display = 'none';
+    calco.style.opacity = o.calco;
+    actualizar();
+  };
+  foto.alCambiar.push(ajustarForma);
+
+  function actualizar() {
+    const vw = vid.videoWidth, vh = vid.videoHeight;
+    vacio.style.display = vw ? 'none' : '';
+    if (!vw) { ubicarFoto(); return; }
+    const W = escenario.clientWidth, H = escenario.clientHeight;
+    const girado = o.giro % 180 !== 0;
+    const ew = girado ? vh : vw, eh = girado ? vw : vh;
+    const sc = Math.max(W / ew, H / eh) * o.zoom;
+    vid.style.width = vw * sc + 'px';
+    vid.style.height = vh * sc + 'px';
+    vid.style.transform = `translate(-50%, -50%) translate(${o.x * W}px, ${o.y * H}px) rotate(${o.giro}deg)`;
+    vid.playbackRate = o.velocidad;
+    ubicarFoto();
+  }
+  new ResizeObserver(actualizar).observe(escenario);
+
+  // Arrastrar para mover, rueda del ratón para zoom
+  let arrastre = null;
+  escenario.addEventListener('pointerdown', (e) => {
+    arrastre = { x: e.clientX, y: e.clientY };
+    escenario.setPointerCapture(e.pointerId);
   });
-  datos.medios.forEach(reproducir);
-  actualizarBarra();
-}
-
-function alPerder(i, datos) {
-  visibles.delete(i);
-  datos.medios.forEach((m) => m.el.pause());
-  datos.efectos.forEach((e) => {
-    if (e.reiniciarEfecto) e.reiniciarEfecto();
-    else { e.setAttribute('rotation', '0 0 0'); e.setAttribute('scale', '0.2 0.2 0.2'); }
+  escenario.addEventListener('pointermove', (e) => {
+    if (!arrastre) return;
+    o.x += (e.clientX - arrastre.x) / escenario.clientWidth;
+    o.y += (e.clientY - arrastre.y) / escenario.clientHeight;
+    arrastre = { x: e.clientX, y: e.clientY };
+    actualizar();
   });
-  actualizarBarra();
+  escenario.addEventListener('pointerup', () => { arrastre = null; });
+  escenario.addEventListener('pointercancel', () => { arrastre = null; });
+  escenario.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    o.zoom = Math.min(4, Math.max(0.2, o.zoom * (1 - e.deltaY * 0.001)));
+    zoom.value = o.zoom; actualizar();
+  }, { passive: false });
+
+  // Controles: encuadre
+  const zoom = el('input', { type: 'range', min: 0.2, max: 4, step: 0.01, value: 1 });
+  zoom.addEventListener('input', () => { o.zoom = Number(zoom.value); actualizar(); });
+  const fmtX = (n) => n.toFixed(2) + 'x';
+  const tamano = el('input', { type: 'range', min: 0.5, max: 2.5, step: 0.05, value: 1 });
+  const tamanoT = el('span', {}, '1.00x');
+  tamano.addEventListener('input', () => { o.tamano = Number(tamano.value); tamanoT.textContent = fmtX(o.tamano); actualizar(); });
+  const radio = el('input', { type: 'range', min: 0, max: 0.5, step: 0.01, value: 0 });
+  const radioT = el('span', {}, 'Rectas');
+  radio.addEventListener('input', () => {
+    o.radio = Number(radio.value);
+    radioT.textContent = o.radio === 0 ? 'Rectas' : o.radio >= 0.5 ? 'Máximo' : Math.round(o.radio * 200) + '%';
+    actualizar();
+  });
+  const calcoR = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: o.calco });
+  calcoR.addEventListener('input', () => { o.calco = Number(calcoR.value); calco.style.opacity = o.calco; });
+  const girar = (d) => { o.giro = (o.giro + d + 360) % 360; actualizar(); };
+  const ajustar = (modo) => {
+    o.x = 0; o.y = 0;
+    if (modo === 'cubrir') o.zoom = 1;
+    else {
+      const girado = o.giro % 180 !== 0;
+      const ew = girado ? vid.videoHeight : vid.videoWidth, eh = girado ? vid.videoWidth : vid.videoHeight;
+      const W = 1, H = foto.aspecto;
+      o.zoom = ew ? Math.min(W / ew, H / eh) / Math.max(W / ew, H / eh) : 1;
+    }
+    zoom.value = o.zoom; actualizar();
+  };
+
+  // Controles: tiempo
+  const fmt = (t) => (t == null ? '—' : t.toFixed(1) + ' s');
+  const ini = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 0 });
+  const fin = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 1 });
+  const iniT = el('span', {}, '0.0 s'), finT = el('span', {}, '—');
+  ini.addEventListener('input', () => {
+    o.inicio = Math.min(Number(ini.value), (o.fin ?? vid.duration) - 0.2);
+    ini.value = o.inicio; iniT.textContent = fmt(o.inicio); vid.currentTime = o.inicio;
+  });
+  fin.addEventListener('input', () => {
+    o.fin = Math.max(Number(fin.value), o.inicio + 0.2);
+    fin.value = o.fin; finT.textContent = fmt(o.fin); vid.currentTime = Math.max(o.inicio, o.fin - 1);
+  });
+  vid.addEventListener('timeupdate', () => {
+    const f = o.fin ?? vid.duration;
+    if (vid.currentTime >= f - 0.05 || vid.currentTime < o.inicio - 0.1) vid.currentTime = o.inicio;
+  });
+  const vel = el('select', {}, ...[0.5, 0.75, 1, 1.25, 1.5, 2].map((v) =>
+    el('option', { value: v, selected: v === 1 }, v === 1 ? 'Normal (1x)' : v + 'x')));
+  vel.addEventListener('change', () => { o.velocidad = Number(vel.value); actualizar(); });
+  const alFinal = el('select', {},
+    el('option', { value: 'repetir' }, 'Repetir en bucle'),
+    el('option', { value: 'parar' }, 'Detenerse en el último cuadro'),
+    el('option', { value: 'desaparecer' }, 'Desaparecer'));
+  alFinal.addEventListener('change', () => { o.alFinal = alFinal.value; });
+
+  // Controles: efectos
+  const aparicion = el('select', {},
+    el('option', { value: 'ninguna' }, 'Directo sobre la foto'),
+    el('option', { value: 'fundido' }, 'Aparece con fundido'),
+    el('option', { value: 'flotar' }, 'Flota hacia la cámara'),
+    el('option', { value: 'mesa' }, 'Se levanta de pie (pop-up)'),
+    el('option', { value: 'pared' }, 'Sale inclinado (pop-up)'));
+  aparicion.addEventListener('change', () => { o.aparicion = aparicion.value; verEfecto(); });
+  const fondo = el('select', {},
+    el('option', { value: 'ninguno' }, 'No'),
+    el('option', { value: 'negro' }, 'Quitar negro'),
+    el('option', { value: 'verde' }, 'Quitar verde'),
+    el('option', { value: 'azul' }, 'Quitar azul'));
+  fondo.addEventListener('change', () => { o.quitarFondo = fondo.value; tolC.style.display = fondo.value === 'ninguno' ? 'none' : ''; });
+  const tol = el('input', { type: 'number', value: 0.1, step: 0.02, min: 0, max: 0.6 });
+  tol.addEventListener('input', () => { o.tolerancia = Number(tol.value); });
+  const tolC = campo('Intensidad del recorte', tol, 'Súbelo si queda borde; bájalo si se borra de más.');
+  tolC.style.display = 'none';
+
+  function verEfecto() {
+    const anims = {
+      fundido: [{ opacity: 0 }, { opacity: 1 }],
+      flotar: [{ transform: 'scale(0.9)', filter: 'drop-shadow(0 0 0 #0000)' },
+               { transform: 'scale(1.1)', filter: 'drop-shadow(0 18px 18px #0006)' }],
+      mesa: [{ transform: 'perspective(600px) rotateX(-88deg) scale(0.3)', transformOrigin: '50% 85%' },
+             { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
+      pared: [{ transform: 'perspective(600px) rotateX(-60deg) scale(0.3)', transformOrigin: '50% 85%' },
+              { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
+    };
+    const k = anims[o.aparicion];
+    if (k) capaPrev.animate(k, { duration: 1000, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
+    else capaPrev.getAnimations().forEach((a) => a.cancel());
+    vid.currentTime = o.inicio; vid.play().catch(() => {});
+  }
+
+  const reproducir = el('button', { class: 'btn peq', onclick: () => { vid.paused ? vid.play() : vid.pause(); } }, '▶︎ / ❚❚');
+  const sonido = el('button', { class: 'btn peq', onclick: () => { vid.muted = !vid.muted; } }, 'Sonido');
+
+  capa.alArchivo = () => {
+    if (!capa.archivo) return;
+    vid.src = URL.createObjectURL(capa.archivo);
+    vid.addEventListener('loadedmetadata', () => {
+      capa.dims = { vw: vid.videoWidth, vh: vid.videoHeight, duracion: vid.duration };
+      ini.max = fin.max = vid.duration.toFixed(1);
+      fin.value = vid.duration; o.fin = null; finT.textContent = fmt(vid.duration);
+      ajustar('cubrir');
+      vid.play().catch(() => {});
+    }, { once: true });
+  };
+
+  const controles = el('div', {},
+    el('div', { class: 'grupo' }, el('h4', {}, 'Encuadre'),
+      el('div', { class: 'ayuda', style: 'margin:0 0 8px' }, 'Arrastra el video para moverlo. El cuadro es el área del video en el celular; el borde celeste es tu foto.'),
+      el('label', {}, 'Tamaño del video en el celular (1x = igual que la foto)'),
+      el('div', { class: 'rango' }, tamano, tamanoT),
+      el('label', { style: 'margin-top:6px' }, 'Esquinas redondeadas'),
+      el('div', { class: 'rango' }, radio, radioT),
+      el('label', { style: 'margin-top:6px' }, 'Zoom dentro del video (acerca la imagen sin cambiar el tamaño)'), zoom,
+      el('div', { class: 'botones' },
+        el('button', { class: 'btn peq', onclick: () => girar(-90) }, '⟲ Girar'),
+        el('button', { class: 'btn peq', onclick: () => girar(90) }, 'Girar ⟳'),
+        el('button', { class: 'btn peq', onclick: () => ajustar('cubrir') }, 'Llenar la foto'),
+        el('button', { class: 'btn peq', onclick: () => ajustar('contener') }, 'Ver video completo'),
+        reproducir, sonido),
+      el('div', { style: 'margin-top:8px' }, el('label', {}, 'Ver la foto encima (para alinear)'), calcoR)),
+    el('div', { class: 'grupo' }, el('h4', {}, 'Tiempo'),
+      el('label', {}, 'Empieza en'), el('div', { class: 'rango' }, ini, iniT),
+      el('label', {}, 'Termina en'), el('div', { class: 'rango' }, fin, finT),
+      el('div', { class: 'fila', style: 'margin-top:8px' }, campo('Velocidad', vel), campo('Al terminar', alFinal)),
+      el('div', { style: 'margin-top:8px' }, chk('reiniciar', 'Empezar desde el inicio cada vez que se escanea', true))),
+    el('div', { class: 'grupo' }, el('h4', {}, 'Efectos'),
+      el('div', { class: 'fila' }, campo('Cómo aparece', aparicion), campo('Fondo transparente', fondo), tolC),
+      el('div', { class: 'ayuda' }, 'El fondo transparente se ve en el celular; aquí solo se muestra el encuadre.')));
+
+  cuerpo.append(el('div', { class: 'editor' }, escenario, controles));
+  ajustarForma();
 }
 
-function actualizarBarra() {
-  let enlace = null;
-  visibles.forEach((d) => { if (d.enlace) enlace = d.enlace; });
-  const a = $('btnEnlace');
-  if (enlace) { a.href = enlace.url; a.textContent = enlace.texto; a.classList.remove('oculto'); }
-  else a.classList.add('oculto');
-  const hayAlgo = enlace || !$('btnSonido').classList.contains('oculto');
-  $('barra').classList.toggle('oculto', !hayAlgo);
+/* ---------- Compilación de fotos ---------- */
+async function obtenerCompilador() {
+  if (window.MINDAR?.IMAGE?.Compiler) return window.MINDAR.IMAGE.Compiler;
+  try {
+    const m = await import('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+    if (m.Compiler) return m.Compiler;
+  } catch (e) { console.warn(e); }
+  if (window.MINDAR?.IMAGE?.Compiler) return window.MINDAR.IMAGE.Compiler;
+  throw new Error('No se pudo cargar el analizador de imágenes. Revisa tu conexión.');
 }
 
-// Un toque del usuario "desbloquea" el audio y video en iPhone y Android
-function desbloquearMedios() {
-  todosLosMedios.forEach(({ el }) => {
-    if (el.tagName === 'VIDEO') el.muted = false;
-    const p = el.play();
-    if (p && p.then) p.then(() => { el.pause(); el.currentTime = 0; }).catch(() => {});
+// Reduce fotos grandes (más rápido y igual de preciso)
+function prepararImagen(archivo, max = 1024) {
+  return new Promise((ok, mal) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const salida = new Image();
+      salida.onload = () => ok({ img: salida, canvas: c });
+      salida.src = c.toDataURL('image/jpeg', 0.92);
+    };
+    img.onerror = () => mal(new Error('No se pudo leer la foto ' + archivo.name));
+    img.src = URL.createObjectURL(archivo);
   });
 }
 
-$('btnComenzar').addEventListener('click', () => {
-  desbloquearMedios();
-  $('inicio').classList.add('oculto');
-  escena.systems['mindar-image-system'].start();
+function extension(nombre) {
+  const m = nombre.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return m ? m[1] : 'bin';
+}
+
+function estado(t) { $('estado').textContent = t; }
+function progreso(p) {
+  $('prog').classList.remove('oculto');
+  $('prog').firstElementChild.style.width = Math.max(0, Math.min(100, p)) + '%';
+}
+
+$('btnGenerar').addEventListener('click', async () => {
+  const slug = $('slug').value || slugify($('titulo').value);
+  if (!slug) return alert('Escribe un nombre para el proyecto.');
+  if (!fotos.length) return alert('Agrega al menos una foto.');
+  if (fotos.some((f) => !f.archivo)) return alert('Cada tarjeta necesita su foto disparadora.');
+  for (const f of fotos) for (const c of f.capas) {
+    if (TIPOS[c.tipo].accept && !c.archivo) return alert(`Falta el archivo de una capa (${TIPOS[c.tipo].nombre}).`);
+    if (c.tipo === 'enlace' && !/^https?:\/\//.test(c.opciones.url || '')) return alert('Un enlace necesita una dirección que empiece con https://');
+  }
+
+  const btn = $('btnGenerar');
+  btn.disabled = true;
+  try {
+    estado('Cargando analizador…'); progreso(2);
+    const Compiler = await obtenerCompilador();
+
+    estado('Preparando fotos…');
+    const preparadas = [];
+    for (const f of fotos) preparadas.push(await prepararImagen(f.archivo));
+
+    estado('Analizando fotos (esto es lo que más tarda)…');
+    const compiler = new Compiler();
+    await compiler.compileImageTargets(preparadas.map((p) => p.img), (p) => progreso(5 + p * 0.85));
+    const mind = await compiler.exportData();
+
+    estado('Empaquetando archivos…'); progreso(92);
+    const zip = new JSZip();
+    const carpeta = zip.folder('proyectos').folder(slug);
+    carpeta.file('targets.mind', mind);
+
+    const config = {
+      titulo: $('titulo').value || slug,
+      descripcion: $('descripcion').value || undefined,
+      maxSimultaneos: 1,
+      seguimiento: $('seguimiento').value,
+      objetivos: [],
+    };
+
+    for (let i = 0; i < fotos.length; i++) {
+      const f = fotos[i];
+      const blobFoto = await new Promise((ok) => preparadas[i].canvas.toBlob(ok, 'image/jpeg', 0.9));
+      carpeta.file(`foto${i + 1}.jpg`, blobFoto);
+
+      const capas = [];
+      f.capas.forEach((c, j) => {
+        const o = c.opciones;
+        const capa = { tipo: c.tipo };
+        if (c.archivo) {
+          capa.src = `foto${i + 1}-capa${j + 1}.${extension(c.archivo.name)}`;
+          carpeta.file(capa.src, c.archivo);
+        }
+        const z = Number(o.frente) || 0;
+        if (c.tipo === 'video') {
+          const d = c.dims;
+          Object.assign(capa, { ancho: 1, posicion: '0 0 0', alFinal: o.alFinal, reiniciar: o.reiniciar });
+          if (d) {
+            Object.assign(capa, { ancho: o.tamano, alto: Math.round(f.aspecto * o.tamano * 10000) / 10000,
+              recorte: calcularRecorte(o, d.vw, d.vh, f.aspecto), giro: o.giro });
+            if (o.inicio > 0) capa.inicio = Math.round(o.inicio * 10) / 10;
+            if (o.fin != null && o.fin < d.duracion - 0.05) capa.fin = Math.round(o.fin * 10) / 10;
+          }
+          if (o.velocidad !== 1) capa.velocidad = o.velocidad;
+          if (o.radio > 0) capa.radio = o.radio;
+          if (o.aparicion === 'fundido' || o.aparicion === 'flotar') capa.aparicion = o.aparicion;
+          if (o.aparicion === 'flotar') capa.altura = 0.15;
+          if (o.aparicion === 'mesa' || o.aparicion === 'pared')
+            Object.assign(capa, { emerger: true, angulo: o.aparicion === 'mesa' ? 90 : 55, base: -0.35 });
+          if (o.quitarFondo !== 'ninguno') Object.assign(capa, { quitarFondo: o.quitarFondo, tolerancia: Number(o.tolerancia) || 0.1 });
+        }
+        if (c.tipo === 'audio') Object.assign(capa, { volumen: Number(o.volumen), repetir: o.repetir, reiniciar: o.reiniciar });
+        if (c.tipo === 'imagen') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}` });
+        if (c.tipo === 'modelo') Object.assign(capa, {
+          escala: Number(o.escala) || 0.3, posicion: `0 0 ${z}`,
+          rotacion: o.orientacion === 'mesa' ? '90 0 0' : '0 0 0', animar: o.animar, girar: o.girar });
+        if (c.tipo === 'enlace') Object.assign(capa, { texto: o.texto || 'Ver más', url: o.url });
+        capas.push(capa);
+      });
+      config.objetivos.push({ nombre: f.nombreInput.value || `Foto ${i + 1}`, foto: `foto${i + 1}.jpg`, capas });
+    }
+    carpeta.file('config.json', JSON.stringify(config, null, 2));
+
+    const blob = await zip.generateAsync({ type: 'blob' }, (m) => progreso(92 + m.percent * 0.08));
+    const a = el('a', { href: URL.createObjectURL(blob), download: `ar-${slug}.zip` });
+    document.body.appendChild(a); a.click(); a.remove();
+    progreso(100);
+    estado(`Listo. Descomprime el .zip y sube la carpeta "proyectos/${slug}" a tu sitio. Luego crea el QR en el paso 4.`);
+    $('slugQr').value = slug;
+  } catch (e) {
+    console.error(e);
+    estado('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
-$('btnSonido').addEventListener('click', () => {
-  todosLosMedios.forEach(({ el }) => { el.muted = false; });
-  visibles.forEach((d) => d.medios.forEach((m) => m.el.play().catch(() => {})));
-  $('btnSonido').classList.add('oculto');
-  actualizarBarra();
+/* ---------- QR ---------- */
+try { const g = localStorage.getItem('ar-base'); if (g) $('baseUrl').value = g; } catch (e) {}
+if (!$('baseUrl').value && location.protocol.startsWith('http')) {
+  $('baseUrl').value = location.href.replace(/crear\.html.*$/, '');
+}
+
+$('btnQr').addEventListener('click', () => {
+  let b = $('baseUrl').value.trim();
+  const s = slugify($('slugQr').value);
+  if (!/^https:\/\//.test(b)) return alert('La dirección debe empezar con https:// (la cámara solo funciona en sitios seguros).');
+  if (!s) return alert('Escribe el nombre del proyecto.');
+  if (!b.endsWith('/')) b = b.replace(/index\.html$/, '').replace(/\/?$/, '/');
+  try { localStorage.setItem('ar-base', b); } catch (e) {}
+  const url = `${b}?p=${encodeURIComponent(s)}`;
+  $('enlaceFinal').innerHTML = '';
+  $('enlaceFinal').append('Enlace: ', el('a', { href: url, target: '_blank' }, url));
+  const caja = $('qr'); caja.innerHTML = ''; caja.style.display = 'inline-block';
+  new QRCode(caja, { text: url, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.M });
+  $('btnDescargarQr').disabled = false;
+  $('btnDescargarQr').onclick = () => {
+    const c = caja.querySelector('canvas');
+    const a = el('a', { href: c.toDataURL('image/png'), download: `qr-${s}.png` });
+    document.body.appendChild(a); a.click(); a.remove();
+  };
 });
 
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) todosLosMedios.forEach(({ el }) => el.pause());
-});
-
-cargar();
+$('btnAgregarFoto').addEventListener('click', agregarFoto);
+agregarFoto();
 </script>
 </body>
 </html>
