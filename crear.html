@@ -57,19 +57,59 @@
   #qr { margin-top:16px; display:inline-block; padding:12px; background:#fff; border:1px solid var(--linea); border-radius:12px; }
   code { background:var(--campo); padding:2px 6px; border-radius:6px; }
   .oculto { display:none !important; }
-  .editor { display:grid; grid-template-columns:minmax(200px, 300px) 1fr; gap:18px; grid-column:1/-1; margin-top:6px; }
-  @media (max-width:640px) { .editor { grid-template-columns:1fr; } }
-  .escenario { position:relative; width:100%; aspect-ratio:3/4; overflow:hidden; border-radius:4px; touch-action:none;
-    cursor:grab; background:repeating-conic-gradient(#14213f 0 25%, #0b1429 0 50%) 0 0/16px 16px; }
-  .escenario:active { cursor:grabbing; }
-  .escenario .capa-prev { position:absolute; inset:0; overflow:hidden; }
-  .escenario video { position:absolute; left:50%; top:50%; max-width:none; pointer-events:none; }
-  .escenario img.calco { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; }
-  .escenario .borde { position:absolute; inset:0; border:2px solid var(--acento2); box-shadow:0 0 12px #22d3ee66; border-radius:2px; pointer-events:none; }
-  .escenario .vacio { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:16px;
-    color:var(--suave); font-size:13px; }
-  .grupo { border-top:1px solid var(--linea); padding-top:10px; margin-top:10px; }
-  .grupo:first-child { border-top:0; padding-top:0; margin-top:0; }
+  /* Escena 2D / 3D */
+  .escena { margin:16px 0 4px; }
+  .e-barra { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px; }
+  .seg { display:inline-flex; border:1px solid var(--linea); border-radius:10px; overflow:hidden; }
+  .seg .btn { border:0; border-radius:0; }
+  .btn.on { background:linear-gradient(135deg, #2563eb, #0ea5e9); color:#fff; }
+  .e-calco-ctl { display:flex; align-items:center; gap:8px; margin:0; font-size:13px; }
+  .e-calco-ctl input { width:110px; }
+  .e-escenario { position:relative; width:100%; aspect-ratio:4/3; max-height:560px; overflow:hidden; border-radius:12px;
+    border:1px solid var(--linea); touch-action:none; cursor:default; user-select:none;
+    background:
+      linear-gradient(#ffffff08 1px, transparent 1px) 0 0/24px 24px,
+      linear-gradient(90deg, #ffffff08 1px, transparent 1px) 0 0/24px 24px,
+      radial-gradient(circle at 50% 40%, #10224a, #060c1a 75%); }
+  .e-escenario.es3d { perspective:1400px; cursor:grab; }
+  .e-escenario.es3d:active { cursor:grabbing; }
+  .e-mundo { position:absolute; inset:0; transform-style:preserve-3d; transform-origin:50% 50%; }
+  .e-foto { position:absolute; left:50%; top:50%; background:#0b1530 center/100% 100% no-repeat;
+    outline:1px dashed #3b5b9a; display:grid; place-items:center; color:var(--suave); font-size:12px; }
+  .e-calco { position:absolute; left:50%; top:50%; pointer-events:none; z-index:5; object-fit:fill; }
+  .e-vacia { position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:12px; color:var(--suave); pointer-events:none; }
+  .e-elem { position:absolute; left:50%; top:50%; transform-style:preserve-3d; }
+  .e-escenario:not(.es3d) .e-elem { cursor:move; }
+  .e-efecto { width:100%; height:100%; transform-style:preserve-3d; }
+  .e-marco { position:relative; width:100%; height:100%; overflow:hidden; background:#000; }
+  .e-marco video { position:absolute; left:50%; top:50%; max-width:none; pointer-events:none; }
+  .e-img { width:100%; height:100%; display:block; pointer-events:none; }
+  .e-elem.sel .e-marco, .e-elem.sel .e-img { outline:2px solid var(--acento2); outline-offset:3px; }
+  .e-cubo { position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+  .e-cubo .cara { position:absolute; inset:0; border:1px dashed #7dd3fc; background:#22d3ee14; }
+  .e-cubo .frente { transform:translateZ(var(--m)); } .e-cubo .atras { transform:translateZ(calc(-1 * var(--m))); }
+  .e-cubo .izq { transform:rotateY(-90deg) translateZ(var(--m)); } .e-cubo .der { transform:rotateY(90deg) translateZ(var(--m)); }
+  .e-cubo .arriba { transform:rotateX(90deg) translateZ(var(--m)); } .e-cubo .abajo { transform:rotateX(-90deg) translateZ(var(--m)); }
+  .e-cubo span { position:absolute; inset:0; display:grid; place-items:center; font-size:12px; font-weight:700; color:#7dd3fc;
+    transform:translateZ(var(--m)); }
+  .e-elem.sel .e-cubo .cara { border-color:var(--acento2); background:#22d3ee30; }
+  .e-ejes { position:absolute; left:50%; top:50%; transform-style:preserve-3d; transform:translateZ(1px); display:none; pointer-events:none; }
+  .es3d .e-ejes { display:block; }
+  .e-ejes i { position:absolute; left:0; top:0; }
+  .e-ejes .ex { width:var(--L); height:2px; background:#f87171; }
+  .e-ejes .ey { width:2px; height:var(--L); top:calc(-1 * var(--L)); background:#4ade80; }
+  .e-ejes .ez { width:var(--L); height:2px; background:#60a5fa; transform-origin:0 0; transform:rotateY(-90deg); }
+  .e-ejes b { position:absolute; font-size:11px; }
+  .e-ejes .lx { left:var(--L); top:-8px; color:#f87171; }
+  .e-ejes .ly { left:4px; top:calc(-1 * var(--L) - 14px); color:#4ade80; }
+  .e-ejes .lz { left:0; top:-8px; color:#60a5fa; transform:translateZ(var(--L)); }
+  .capa.sel { border-color:#22d3ee88; box-shadow:0 0 0 1px #22d3ee55; }
+  .grupo.pos .sep { border-top:1px dashed var(--linea); margin:10px 0 6px; }
+  .rango input.mini { flex:0 0 74px; width:74px; padding:5px 6px; font-size:13px; }
+  .pos-cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:4px 24px; }
+  .pos-cols label { margin-top:6px; }
+  .editor { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px 20px; grid-column:1/-1; }
+  .grupo { border:1px solid var(--linea); border-radius:10px; padding:12px; background:#0d1730; }
   .grupo h4 { margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--suave); }
   .botones { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .rango { display:flex; align-items:center; gap:8px; font-size:13px; }
@@ -202,6 +242,7 @@ function agregarFoto() {
   const listaCapas = el('div');
   const nombre = el('input', { type: 'text', placeholder: 'Ej. Obra 1 — Atardecer' });
   foto.nombreInput = nombre;
+  foto.escena = crearEscena(foto);
 
   inputFoto.addEventListener('change', () => {
     foto.archivo = inputFoto.files[0] || null;
@@ -214,6 +255,7 @@ function agregarFoto() {
       probe.onload = () => {
         foto.aspecto = probe.naturalHeight / probe.naturalWidth;
         foto.alCambiar.forEach((fn) => fn());
+        foto.escena.render();
       };
       probe.src = foto.url;
     }
@@ -233,17 +275,150 @@ function agregarFoto() {
       el('button', { class: 'quitar', onclick: () => {
         fotos.splice(fotos.indexOf(foto), 1); tarjeta.remove(); } }, 'Quitar foto')
     ),
+    foto.escena.raiz,
     listaCapas,
     agregar
   );
   $('fotos').appendChild(tarjeta);
 }
 
+/* ---------- Escena de la foto: vista 2D (de frente) y 3D (girable) ----------
+   Unidades = ancho de la foto. Origen = centro de la foto.
+   X a la derecha, Y hacia arriba, Z hacia la cámara (igual que en el celular). */
+function crearEscena(foto) {
+  const esc = { modo: '2d', yaw: -32, pitch: 28, vista: 1, sel: null, elems: new Map(), calco: 0 };
+
+  const fotoEl = el('div', { class: 'e-foto' }, el('span', {}, 'Tu foto'));
+  const ejes = el('div', { class: 'e-ejes' },
+    el('i', { class: 'ex' }), el('b', { class: 'lx' }, 'X'),
+    el('i', { class: 'ey' }), el('b', { class: 'ly' }, 'Y'),
+    el('i', { class: 'ez' }), el('b', { class: 'lz' }, 'Z'));
+  const mundo = el('div', { class: 'e-mundo' }, fotoEl, ejes);
+  const calco = el('img', { class: 'e-calco', alt: '' });
+  const vacia = el('div', { class: 'e-vacia' }, 'Agrega un video, imagen o modelo 3D para verlo aquí');
+  const escenario = el('div', { class: 'e-escenario' }, mundo, calco, vacia);
+
+  const b2d = el('button', { class: 'btn peq on', onclick: () => cambiarModo('2d') }, 'Vista 2D');
+  const b3d = el('button', { class: 'btn peq', onclick: () => cambiarModo('3d') }, 'Vista 3D');
+  const calcoR = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: 0 });
+  calcoR.addEventListener('input', () => { esc.calco = Number(calcoR.value); esc.render(); });
+  const calcoC = el('label', { class: 'e-calco-ctl' }, 'Foto encima', calcoR);
+  const ayuda = el('div', { class: 'ayuda' });
+
+  esc.raiz = el('div', { class: 'escena' },
+    el('div', { class: 'e-barra' },
+      el('div', { class: 'seg' }, b2d, b3d), calcoC,
+      el('button', { class: 'btn peq', onclick: () => { esc.vista = 1; esc.yaw = -32; esc.pitch = 28; esc.render(); } }, 'Restablecer vista')),
+    escenario, ayuda);
+
+  function cambiarModo(m) {
+    esc.modo = m;
+    b2d.classList.toggle('on', m === '2d');
+    b3d.classList.toggle('on', m === '3d');
+    esc.render();
+  }
+
+  esc.U = () => escenario.clientWidth * 0.36 * esc.vista;
+
+  esc.render = () => {
+    const U = esc.U();
+    if (!U) return;
+    const es3d = esc.modo === '3d';
+    escenario.classList.toggle('es3d', es3d);
+    mundo.style.transform = es3d ? `rotateX(${esc.pitch}deg) rotateY(${esc.yaw}deg)` : 'none';
+    const w = U, h = U * foto.aspecto;
+    Object.assign(fotoEl.style, { width: w + 'px', height: h + 'px', marginLeft: -w / 2 + 'px', marginTop: -h / 2 + 'px',
+      backgroundImage: foto.url ? `url("${foto.url}")` : 'none' });
+    fotoEl.firstChild.style.display = foto.url ? 'none' : '';
+    ejes.style.setProperty('--L', U * 0.7 + 'px');
+    Object.assign(calco.style, { width: w + 'px', height: h + 'px', marginLeft: -w / 2 + 'px', marginTop: -h / 2 + 'px',
+      opacity: es3d ? 0 : esc.calco });
+    if (foto.url && calco.src !== foto.url) calco.src = foto.url;
+    calcoC.style.display = es3d ? 'none' : '';
+    vacia.style.display = esc.elems.size ? 'none' : '';
+    ayuda.textContent = es3d
+      ? 'Arrastra para girar la cámara · rueda del ratón para acercar. Usa los controles X, Y, Z de cada elemento para moverlo.'
+      : 'Vista de frente, como en el celular. Arrastra un elemento para moverlo · rueda del ratón para acercar la vista.';
+    esc.elems.forEach((r) => r.render(U));
+  };
+
+  esc.agregar = (capa, r) => {
+    r.raiz.classList.add('e-elem');
+    r.raiz.capa = capa;
+    mundo.appendChild(r.raiz);
+    esc.elems.set(capa, r);
+    esc.seleccionar(capa);
+    esc.render();
+  };
+  esc.quitar = (capa) => {
+    const r = esc.elems.get(capa);
+    if (r) { r.raiz.remove(); esc.elems.delete(capa); }
+    if (esc.sel === capa) esc.sel = null;
+    esc.render();
+  };
+  esc.seleccionar = (capa) => {
+    esc.sel = capa;
+    esc.elems.forEach((r, c) => r.raiz.classList.toggle('sel', c === capa));
+    foto.capas.forEach((c) => c.caja && c.caja.classList.toggle('sel', c === capa));
+  };
+
+  // Arrastrar: en 2D mueve el elemento; en 3D gira la cámara
+  let arrastre = null;
+  escenario.addEventListener('pointerdown', (e) => {
+    const raiz = e.target.closest('.e-elem');
+    if (raiz) esc.seleccionar(raiz.capa);
+    arrastre = { x: e.clientX, y: e.clientY, capa: esc.modo === '2d' && raiz ? raiz.capa : null };
+    escenario.setPointerCapture(e.pointerId);
+  });
+  escenario.addEventListener('pointermove', (e) => {
+    if (!arrastre) return;
+    const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
+    arrastre.x = e.clientX; arrastre.y = e.clientY;
+    if (esc.modo === '3d') {
+      esc.yaw += dx * 0.4;
+      esc.pitch = Math.max(-89, Math.min(89, esc.pitch - dy * 0.4));
+    } else if (arrastre.capa) {
+      const c = arrastre.capa, o = c.opciones, U = esc.U();
+      if (c.tipo === 'video' && o.arrastre === 'contenido') {
+        const r = esc.elems.get(c);
+        o.ex += dx / r.raiz.offsetWidth; o.ey += dy / r.raiz.offsetHeight;
+      } else {
+        o.px = redondear(o.px + dx / U); o.py = redondear(o.py - dy / U);
+      }
+      if (c.sync) c.sync();
+    }
+    esc.render();
+  });
+  const soltar = () => { arrastre = null; };
+  escenario.addEventListener('pointerup', soltar);
+  escenario.addEventListener('pointercancel', soltar);
+  escenario.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    esc.vista = Math.min(3, Math.max(0.35, esc.vista * (1 - e.deltaY * 0.001)));
+    esc.render();
+  }, { passive: false });
+  new ResizeObserver(() => esc.render()).observe(escenario);
+  setTimeout(esc.render, 0);
+  return esc;
+}
+
+function redondear(n) { return Math.round(n * 1000) / 1000; }
+
+// Posición y giro de un elemento en la escena (mismo orden de giro que el visor: Y, luego X, luego Z)
+function transformarElemento(o, U, sinGiro) {
+  // Y en pantalla va hacia abajo: los giros en X y Z cambian de signo; el de Y no
+  const giro = sinGiro ? '' : ` rotateY(${o.ry}deg) rotateX(${-o.rx}deg) rotateZ(${-o.rz}deg)`;
+  return `translate(-50%, -50%) translate3d(${o.px * U}px, ${-o.py * U}px, ${o.pz * U}px)${giro}`;
+}
+
+/* ---------- Capas ---------- */
 function agregarCapa(foto, tipo, contenedor) {
   const capa = { tipo, archivo: null, opciones: {} };
   foto.capas.push(capa);
   const o = capa.opciones;
   const cuerpo = el('div', { class: 'fila' });
+  const visual = tipo === 'video' || tipo === 'imagen' || tipo === 'modelo';
+  if (visual) Object.assign(o, { px: 0, py: 0, pz: 0, rx: 0, ry: 0, rz: 0, tam: tipo === 'modelo' ? 0.3 : 1 });
 
   if (TIPOS[tipo].accept) {
     const f = el('input', { type: 'file', accept: TIPOS[tipo].accept });
@@ -279,140 +454,199 @@ function agregarCapa(foto, tipo, contenedor) {
   };
 
   if (tipo === 'video') editorVideo(foto, capa, o, cuerpo, chk);
+  if (tipo === 'imagen') editorImagen(foto, capa, o, cuerpo);
+  if (tipo === 'modelo') {
+    editorModelo(foto, capa, o, cuerpo);
+    cuerpo.append(el('div', {}, chk('animar', 'Reproducir animación del modelo', true), chk('girar', 'Girar lentamente', false)));
+  }
   if (tipo === 'audio') {
     cuerpo.append(
       num('volumen', 'Volumen (0 a 1)', 1, 0.1),
       el('div', {}, chk('repetir', 'Repetir en bucle', true), chk('reiniciar', 'Empezar desde el inicio cada vez', false)));
   }
-  if (tipo === 'modelo') {
-    o.orientacion = 'pared';
-    const sel = el('select', {},
-      el('option', { value: 'pared' }, 'Foto en pared (modelo de pie)'),
-      el('option', { value: 'mesa' }, 'Foto sobre mesa (modelo parado encima)'));
-    sel.addEventListener('change', () => { o.orientacion = sel.value; });
-    cuerpo.append(
-      num('escala', 'Tamaño', 0.3, 0.05, 'Prueba entre 0.1 y 1.'),
-      num('frente', 'Separación de la foto', 0.1, 0.05),
-      campo('Orientación', sel),
-      el('div', {}, chk('animar', 'Reproducir animación del modelo', true), chk('girar', 'Girar lentamente', false)));
-  }
-  if (tipo === 'imagen') {
-    cuerpo.append(
-      num('ancho', 'Ancho (1 = ancho de la foto)', 1, 0.05, 'Usa PNG con transparencia para marcos o recortes.'),
-      num('frente', 'Separación de la foto', 0.02, 0.01));
-  }
   if (tipo === 'enlace') {
     cuerpo.append(txt('texto', 'Texto del botón', 'Comprar obra'), txt('url', 'Dirección', 'https://…', 'url'));
   }
+  if (visual) cuerpo.append(controlesPosicion(foto, capa));
 
   const caja = el('div', { class: 'capa' },
     el('div', { class: 'capa-cab' }, TIPOS[tipo].nombre,
       el('button', { class: 'quitar', onclick: () => {
-        foto.capas.splice(foto.capas.indexOf(capa), 1); caja.remove(); } }, 'Quitar')),
+        foto.capas.splice(foto.capas.indexOf(capa), 1); caja.remove(); foto.escena.quitar(capa); } }, 'Quitar')),
     cuerpo);
+  capa.caja = caja;
+  if (visual) caja.addEventListener('pointerdown', () => foto.escena.seleccionar(capa));
   contenedor.appendChild(caja);
+  if (foto.escena.sel === capa) foto.escena.seleccionar(capa);
 }
 
+/* Controles de posición (X, Y, Z), giro (X, Y, Z) y tamaño */
+function controlesPosicion(foto, capa) {
+  const o = capa.opciones;
+  const esc = foto.escena;
+  const filas = [
+    ['px', 'X · izquierda ↔ derecha', -2, 2, 0.01],
+    ['py', 'Y · abajo ↕ arriba', -2, 2, 0.01],
+    ['pz', 'Z · pegado a la foto ↔ hacia la cámara', -1, 2, 0.01],
+    ['rx', 'X · inclinar adelante/atrás', -180, 180, 1],
+    ['ry', 'Y · voltear a los lados', -180, 180, 1],
+    ['rz', 'Z · girar como reloj', -180, 180, 1],
+    ['tam', capa.tipo === 'modelo' ? 'Tamaño del modelo' : 'Tamaño (1 = ancho de la foto)', 0.05, 3, 0.01],
+  ];
+  const inputs = {};
+  const colPos = el('div', {}, el('h4', {}, 'Posición y tamaño'));
+  const colGiro = el('div', {}, el('h4', {}, 'Giro (grados)'));
+  const bloque = el('div', { class: 'grupo pos' }, el('div', { class: 'pos-cols' }, colPos, colGiro));
+  filas.forEach(([k, etiqueta, min, max, paso], i) => {
+    const r = el('input', { type: 'range', min, max, step: paso, value: o[k] });
+    const n = el('input', { type: 'number', class: 'mini', min, max, step: paso, value: o[k] });
+    const poner = (v) => {
+      o[k] = Number(v) || 0;
+      r.value = o[k]; n.value = o[k];
+      esc.render();
+    };
+    r.addEventListener('input', () => poner(r.value));
+    n.addEventListener('input', () => poner(n.value));
+    inputs[k] = { r, n };
+    (k[0] === 'r' ? colGiro : colPos).append(el('label', {}, etiqueta), el('div', { class: 'rango' }, r, n));
+  });
+  capa.sync = () => {
+    for (const k in inputs) { inputs[k].r.value = o[k]; inputs[k].n.value = o[k]; }
+  };
+  const alto = () => capa.tipo === 'video' ? o.tam * foto.aspecto : capa.tipo === 'imagen' ? o.tam * (capa.aspecto || 1) : o.tam;
+  const preset = (valores) => { Object.assign(o, valores); capa.sync(); esc.render(); };
+  bloque.append(el('div', { class: 'botones' },
+    el('button', { class: 'btn peq', onclick: () => preset({ px: 0, py: 0, pz: 0, rx: 0, ry: 0, rz: 0 }) }, 'Sobre la foto'),
+    el('button', { class: 'btn peq', onclick: () => preset({ px: 0, py: 0, pz: 0.3, rx: 0, ry: 0, rz: 0 }) }, 'Flotando enfrente'),
+    el('button', { class: 'btn peq', onclick: () => preset({ px: 0, py: -foto.aspecto / 2 + 0.05, pz: redondear(alto() / 2), rx: 90, ry: 0, rz: 0 }) }, 'De pie (foto en mesa)'),
+    el('button', { class: 'btn peq', onclick: () => preset({ px: 0, py: redondear(foto.aspecto / 2 + alto() / 2), pz: 0, rx: 0, ry: 0, rz: 0 }) }, 'Arriba de la foto')));
+  return el('div', { style: 'grid-column:1/-1' }, bloque);
+}
 
-/* ---------- Editor de video con vista previa ---------- */
-// Zona visible del video (ya girado) cuando se encuadra dentro de la foto. Devuelve [izq, arriba, der, abajo] de 0 a 1.
+/* ---------- Imagen ---------- */
+function editorImagen(foto, capa, o, cuerpo) {
+  capa.aspecto = 1;
+  const img = el('img', { class: 'e-img', alt: '', draggable: 'false' });
+  const raiz = el('div', {}, img);
+  const r = {
+    raiz,
+    render(U) {
+      const w = o.tam * U, h = w * capa.aspecto;
+      Object.assign(raiz.style, { width: w + 'px', height: h + 'px', transform: transformarElemento(o, U) });
+      raiz.style.display = img.src ? '' : 'none';
+    },
+  };
+  capa.alArchivo = () => {
+    if (!capa.archivo) return;
+    img.src = URL.createObjectURL(capa.archivo);
+    img.onload = () => { capa.aspecto = img.naturalHeight / img.naturalWidth; foto.escena.render(); };
+  };
+  foto.escena.agregar(capa, r);
+  cuerpo.append(el('div', { class: 'ayuda', style: 'grid-column:1/-1' }, 'Usa PNG con transparencia para marcos, stickers o recortes.'));
+}
+
+/* ---------- Modelo 3D (en la escena se muestra como una caja guía) ---------- */
+function editorModelo(foto, capa, o, cuerpo) {
+  const caras = ['frente', 'atras', 'izq', 'der', 'arriba', 'abajo'].map((c) => el('i', { class: 'cara ' + c }));
+  const cubo = el('div', { class: 'e-cubo' }, ...caras, el('span', {}, '3D'));
+  const raiz = el('div', {}, cubo);
+  const r = {
+    raiz,
+    render(U) {
+      const w = o.tam * U;
+      Object.assign(raiz.style, { width: w + 'px', height: w + 'px', transform: transformarElemento(o, U) });
+      cubo.style.setProperty('--m', w / 2 + 'px');
+    },
+  };
+  foto.escena.agregar(capa, r);
+  cuerpo.append(el('div', { class: 'ayuda', style: 'grid-column:1/-1' },
+    'La caja muestra dónde y cómo de grande aparecerá el modelo (aproximado; depende de cómo se exportó).'));
+}
+
+/* ---------- Video ---------- */
+// Zona visible del video (ya girado) dentro de su marco. Devuelve [izq, arriba, der, abajo] de 0 a 1.
 function calcularRecorte(o, vw, vh, aspecto) {
   const W = 1, H = aspecto;
   const girado = o.giro % 180 !== 0;
   const ew = girado ? vh : vw, eh = girado ? vw : vh;
   const s = Math.max(W / ew, H / eh) * o.zoom;
   const Dw = ew * s, Dh = eh * s;
-  const izq = W / 2 + o.x * W - Dw / 2, arriba = H / 2 + o.y * H - Dh / 2;
+  const izq = W / 2 + o.ex * W - Dw / 2, arriba = H / 2 + o.ey * H - Dh / 2;
   const r = (n) => Math.round(n * 10000) / 10000;
   return [r(-izq / Dw), r(-arriba / Dh), r((W - izq) / Dw), r((H - arriba) / Dh)];
 }
 
 function editorVideo(foto, capa, o, cuerpo, chk) {
-  Object.assign(o, { zoom: 1, x: 0, y: 0, giro: 0, inicio: 0, fin: null, velocidad: 1, alFinal: 'repetir',
-    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, calco: 0.35, tamano: 1, radio: 0 });
+  Object.assign(o, { zoom: 1, ex: 0, ey: 0, giro: 0, inicio: 0, fin: null, velocidad: 1, alFinal: 'repetir',
+    aparicion: 'ninguna', quitarFondo: 'ninguno', tolerancia: 0.1, radio: 0, arrastre: 'elemento' });
 
-  // Vista previa: tiene la forma exacta de la foto
+  // Elemento en la escena: raíz (posición y giro) > efecto (animación) > marco (recorte y esquinas) > video
   const vid = el('video', { playsinline: true, loop: true });
   vid.muted = true;
-  const capaPrev = el('div', { class: 'capa-prev' }, vid);
-  const calco = el('img', { class: 'calco', alt: '' });
-  const vacio = el('div', { class: 'vacio' }, 'Sube la foto y el video para acomodarlo aquí');
-  const borde = el('div', { class: 'borde' });
-  const escenario = el('div', { class: 'escenario' }, capaPrev, calco, borde, vacio);
-  // La vista previa es el área del video; la foto (borde naranja) queda adentro, más chica si el video es más grande
-  const ubicarFoto = () => {
-    const pct = 100 / o.tamano, m = (100 - pct) / 2;
-    for (const n of [calco, borde]) {
-      n.style.inset = 'auto'; n.style.left = m + '%'; n.style.top = m + '%';
-      n.style.width = pct + '%'; n.style.height = pct + '%';
-    }
-    capaPrev.style.borderRadius = o.radio * Math.min(escenario.clientWidth, escenario.clientHeight) + 'px';
-  };
+  const marco = el('div', { class: 'e-marco' }, vid);
+  const efecto = el('div', { class: 'e-efecto' }, marco);
+  const raiz = el('div', {}, efecto);
+  const esPopup = () => o.aparicion === 'mesa' || o.aparicion === 'pared';
 
-  const ajustarForma = () => {
-    escenario.style.aspectRatio = `1 / ${foto.aspecto}`;
-    if (foto.url) { calco.src = foto.url; calco.style.display = ''; } else calco.style.display = 'none';
-    calco.style.opacity = o.calco;
-    actualizar();
+  const r = {
+    raiz,
+    render(U) {
+      const W = o.tam * U, H = o.tam * foto.aspecto * U;
+      Object.assign(raiz.style, { width: W + 'px', height: H + 'px', transform: transformarElemento(o, U, esPopup()) });
+      marco.style.borderRadius = o.radio * Math.min(W, H) + 'px';
+      efecto.style.transformOrigin = esPopup() ? '50% 100%' : '50% 50%';
+      if (!efecto.getAnimations().length) efecto.style.transform = estadoFinal(U);
+      const vw = vid.videoWidth, vh = vid.videoHeight;
+      if (!vw) return;
+      const girado = o.giro % 180 !== 0;
+      const ew = girado ? vh : vw, eh = girado ? vw : vh;
+      const sc = Math.max(W / ew, H / eh) * o.zoom;
+      vid.style.width = vw * sc + 'px';
+      vid.style.height = vh * sc + 'px';
+      vid.style.transform = `translate(-50%, -50%) translate(${o.ex * W}px, ${o.ey * H}px) rotate(${o.giro}deg)`;
+      vid.playbackRate = o.velocidad;
+    },
   };
-  foto.alCambiar.push(ajustarForma);
-
-  function actualizar() {
-    const vw = vid.videoWidth, vh = vid.videoHeight;
-    vacio.style.display = vw ? 'none' : '';
-    if (!vw) { ubicarFoto(); return; }
-    const W = escenario.clientWidth, H = escenario.clientHeight;
-    const girado = o.giro % 180 !== 0;
-    const ew = girado ? vh : vw, eh = girado ? vw : vh;
-    const sc = Math.max(W / ew, H / eh) * o.zoom;
-    vid.style.width = vw * sc + 'px';
-    vid.style.height = vh * sc + 'px';
-    vid.style.transform = `translate(-50%, -50%) translate(${o.x * W}px, ${o.y * H}px) rotate(${o.giro}deg)`;
-    vid.playbackRate = o.velocidad;
-    ubicarFoto();
+  // Cómo queda el elemento al terminar de aparecer (igual que en el celular)
+  function estadoFinal(U) {
+    if (o.aparicion === 'flotar') return `translateZ(${0.15 * U}px) scale(1.1)`;
+    if (o.aparicion === 'mesa') return 'rotateX(-90deg)';
+    if (o.aparicion === 'pared') return 'rotateX(-55deg)';
+    return 'none';
   }
-  new ResizeObserver(actualizar).observe(escenario);
+  function verEfecto() {
+    const U = foto.escena.U();
+    const inicio = {
+      fundido: [{ opacity: 0 }, { opacity: 1 }],
+      flotar: [{ transform: 'translateZ(0) scale(0.9)' }, { transform: estadoFinal(U) }],
+      mesa: [{ transform: 'rotateX(0deg) scale(0.2)' }, { transform: estadoFinal(U) }],
+      pared: [{ transform: 'rotateX(0deg) scale(0.2)' }, { transform: estadoFinal(U) }],
+    }[o.aparicion];
+    efecto.getAnimations().forEach((a) => a.cancel());
+    foto.escena.render();
+    if (inicio) {
+      const a = efecto.animate(inicio, { duration: 1000, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      a.onfinish = () => foto.escena.render();
+    }
+    vid.currentTime = o.inicio; vid.play().catch(() => {});
+  }
+  foto.escena.agregar(capa, r);
+  foto.alCambiar.push(() => foto.escena.render());
+  const render = () => foto.escena.render();
 
-  // Arrastrar para mover, rueda del ratón para zoom
-  let arrastre = null;
-  escenario.addEventListener('pointerdown', (e) => {
-    arrastre = { x: e.clientX, y: e.clientY };
-    escenario.setPointerCapture(e.pointerId);
-  });
-  escenario.addEventListener('pointermove', (e) => {
-    if (!arrastre) return;
-    o.x += (e.clientX - arrastre.x) / escenario.clientWidth;
-    o.y += (e.clientY - arrastre.y) / escenario.clientHeight;
-    arrastre = { x: e.clientX, y: e.clientY };
-    actualizar();
-  });
-  escenario.addEventListener('pointerup', () => { arrastre = null; });
-  escenario.addEventListener('pointercancel', () => { arrastre = null; });
-  escenario.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    o.zoom = Math.min(4, Math.max(0.2, o.zoom * (1 - e.deltaY * 0.001)));
-    zoom.value = o.zoom; actualizar();
-  }, { passive: false });
-
-  // Controles: encuadre
+  // Encuadre del contenido dentro del marco
   const zoom = el('input', { type: 'range', min: 0.2, max: 4, step: 0.01, value: 1 });
-  zoom.addEventListener('input', () => { o.zoom = Number(zoom.value); actualizar(); });
-  const fmtX = (n) => n.toFixed(2) + 'x';
-  const tamano = el('input', { type: 'range', min: 0.5, max: 2.5, step: 0.05, value: 1 });
-  const tamanoT = el('span', {}, '1.00x');
-  tamano.addEventListener('input', () => { o.tamano = Number(tamano.value); tamanoT.textContent = fmtX(o.tamano); actualizar(); });
+  zoom.addEventListener('input', () => { o.zoom = Number(zoom.value); render(); });
   const radio = el('input', { type: 'range', min: 0, max: 0.5, step: 0.01, value: 0 });
   const radioT = el('span', {}, 'Rectas');
   radio.addEventListener('input', () => {
     o.radio = Number(radio.value);
     radioT.textContent = o.radio === 0 ? 'Rectas' : o.radio >= 0.5 ? 'Máximo' : Math.round(o.radio * 200) + '%';
-    actualizar();
+    render();
   });
-  const calcoR = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: o.calco });
-  calcoR.addEventListener('input', () => { o.calco = Number(calcoR.value); calco.style.opacity = o.calco; });
-  const girar = (d) => { o.giro = (o.giro + d + 360) % 360; actualizar(); };
+  const girar = (d) => { o.giro = (o.giro + d + 360) % 360; render(); };
   const ajustar = (modo) => {
-    o.x = 0; o.y = 0;
+    o.ex = 0; o.ey = 0;
     if (modo === 'cubrir') o.zoom = 1;
     else {
       const girado = o.giro % 180 !== 0;
@@ -420,10 +654,14 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
       const W = 1, H = foto.aspecto;
       o.zoom = ew ? Math.min(W / ew, H / eh) / Math.max(W / ew, H / eh) : 1;
     }
-    zoom.value = o.zoom; actualizar();
+    zoom.value = o.zoom; render();
   };
+  const arrastre = el('select', {},
+    el('option', { value: 'elemento' }, 'Mover el video completo'),
+    el('option', { value: 'contenido' }, 'Mover la imagen dentro del marco'));
+  arrastre.addEventListener('change', () => { o.arrastre = arrastre.value; });
 
-  // Controles: tiempo
+  // Tiempo
   const fmt = (t) => (t == null ? '—' : t.toFixed(1) + ' s');
   const ini = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 0 });
   const fin = el('input', { type: 'range', min: 0, max: 1, step: 0.1, value: 1 });
@@ -442,16 +680,16 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
   });
   const vel = el('select', {}, ...[0.5, 0.75, 1, 1.25, 1.5, 2].map((v) =>
     el('option', { value: v, selected: v === 1 }, v === 1 ? 'Normal (1x)' : v + 'x')));
-  vel.addEventListener('change', () => { o.velocidad = Number(vel.value); actualizar(); });
+  vel.addEventListener('change', () => { o.velocidad = Number(vel.value); render(); });
   const alFinal = el('select', {},
     el('option', { value: 'repetir' }, 'Repetir en bucle'),
     el('option', { value: 'parar' }, 'Detenerse en el último cuadro'),
     el('option', { value: 'desaparecer' }, 'Desaparecer'));
   alFinal.addEventListener('change', () => { o.alFinal = alFinal.value; });
 
-  // Controles: efectos
+  // Efectos
   const aparicion = el('select', {},
-    el('option', { value: 'ninguna' }, 'Directo sobre la foto'),
+    el('option', { value: 'ninguna' }, 'Directo'),
     el('option', { value: 'fundido' }, 'Aparece con fundido'),
     el('option', { value: 'flotar' }, 'Flota hacia la cámara'),
     el('option', { value: 'mesa' }, 'Se levanta de pie (pop-up)'),
@@ -468,25 +706,6 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
   const tolC = campo('Intensidad del recorte', tol, 'Súbelo si queda borde; bájalo si se borra de más.');
   tolC.style.display = 'none';
 
-  function verEfecto() {
-    const anims = {
-      fundido: [{ opacity: 0 }, { opacity: 1 }],
-      flotar: [{ transform: 'scale(0.9)', filter: 'drop-shadow(0 0 0 #0000)' },
-               { transform: 'scale(1.1)', filter: 'drop-shadow(0 18px 18px #0006)' }],
-      mesa: [{ transform: 'perspective(600px) rotateX(-88deg) scale(0.3)', transformOrigin: '50% 85%' },
-             { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
-      pared: [{ transform: 'perspective(600px) rotateX(-60deg) scale(0.3)', transformOrigin: '50% 85%' },
-              { transform: 'perspective(600px) rotateX(0) scale(1)', transformOrigin: '50% 85%' }],
-    };
-    const k = anims[o.aparicion];
-    if (k) capaPrev.animate(k, { duration: 1000, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
-    else capaPrev.getAnimations().forEach((a) => a.cancel());
-    vid.currentTime = o.inicio; vid.play().catch(() => {});
-  }
-
-  const reproducir = el('button', { class: 'btn peq', onclick: () => { vid.paused ? vid.play() : vid.pause(); } }, '▶︎ / ❚❚');
-  const sonido = el('button', { class: 'btn peq', onclick: () => { vid.muted = !vid.muted; } }, 'Sonido');
-
   capa.alArchivo = () => {
     if (!capa.archivo) return;
     vid.src = URL.createObjectURL(capa.archivo);
@@ -499,21 +718,18 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
     }, { once: true });
   };
 
-  const controles = el('div', {},
-    el('div', { class: 'grupo' }, el('h4', {}, 'Encuadre'),
-      el('div', { class: 'ayuda', style: 'margin:0 0 8px' }, 'Arrastra el video para moverlo. El cuadro es el área del video en el celular; el borde celeste es tu foto.'),
-      el('label', {}, 'Tamaño del video en el celular (1x = igual que la foto)'),
-      el('div', { class: 'rango' }, tamano, tamanoT),
-      el('label', { style: 'margin-top:6px' }, 'Esquinas redondeadas'),
-      el('div', { class: 'rango' }, radio, radioT),
-      el('label', { style: 'margin-top:6px' }, 'Zoom dentro del video (acerca la imagen sin cambiar el tamaño)'), zoom,
+  cuerpo.append(el('div', { class: 'editor' },
+    el('div', { class: 'grupo' }, el('h4', {}, 'Contenido del video'),
+      el('label', {}, 'Zoom dentro del marco'), zoom,
+      el('label', { style: 'margin-top:6px' }, 'Esquinas redondeadas'), el('div', { class: 'rango' }, radio, radioT),
       el('div', { class: 'botones' },
-        el('button', { class: 'btn peq', onclick: () => girar(-90) }, '⟲ Girar'),
-        el('button', { class: 'btn peq', onclick: () => girar(90) }, 'Girar ⟳'),
-        el('button', { class: 'btn peq', onclick: () => ajustar('cubrir') }, 'Llenar la foto'),
+        el('button', { class: 'btn peq', onclick: () => girar(-90) }, '⟲ Rotar'),
+        el('button', { class: 'btn peq', onclick: () => girar(90) }, 'Rotar ⟳'),
+        el('button', { class: 'btn peq', onclick: () => ajustar('cubrir') }, 'Llenar el marco'),
         el('button', { class: 'btn peq', onclick: () => ajustar('contener') }, 'Ver video completo'),
-        reproducir, sonido),
-      el('div', { style: 'margin-top:8px' }, el('label', {}, 'Ver la foto encima (para alinear)'), calcoR)),
+        el('button', { class: 'btn peq', onclick: () => { vid.paused ? vid.play() : vid.pause(); } }, '▶︎ / ❚❚'),
+        el('button', { class: 'btn peq', onclick: () => { vid.muted = !vid.muted; } }, 'Sonido')),
+      el('div', { style: 'margin-top:8px' }, campo('En vista 2D, arrastrar…', arrastre))),
     el('div', { class: 'grupo' }, el('h4', {}, 'Tiempo'),
       el('label', {}, 'Empieza en'), el('div', { class: 'rango' }, ini, iniT),
       el('label', {}, 'Termina en'), el('div', { class: 'rango' }, fin, finT),
@@ -521,10 +737,7 @@ function editorVideo(foto, capa, o, cuerpo, chk) {
       el('div', { style: 'margin-top:8px' }, chk('reiniciar', 'Empezar desde el inicio cada vez que se escanea', true))),
     el('div', { class: 'grupo' }, el('h4', {}, 'Efectos'),
       el('div', { class: 'fila' }, campo('Cómo aparece', aparicion), campo('Fondo transparente', fondo), tolC),
-      el('div', { class: 'ayuda' }, 'El fondo transparente se ve en el celular; aquí solo se muestra el encuadre.')));
-
-  cuerpo.append(el('div', { class: 'editor' }, escenario, controles));
-  ajustarForma();
+      el('div', { class: 'ayuda' }, 'Al elegir un efecto se reproduce en la escena. El pop-up se aprecia mejor en la vista 3D; el fondo transparente se ve en el celular.'))));
 }
 
 /* ---------- Compilación de fotos ---------- */
@@ -618,13 +831,13 @@ $('btnGenerar').addEventListener('click', async () => {
           capa.src = `foto${i + 1}-capa${j + 1}.${extension(c.archivo.name)}`;
           carpeta.file(capa.src, c.archivo);
         }
-        const z = Number(o.frente) || 0;
+        const pos = `${o.px} ${o.py} ${o.pz}`, rot = `${o.rx} ${o.ry} ${o.rz}`;
         if (c.tipo === 'video') {
           const d = c.dims;
-          Object.assign(capa, { ancho: 1, posicion: '0 0 0', alFinal: o.alFinal, reiniciar: o.reiniciar });
+          const alto = Math.round(f.aspecto * o.tam * 10000) / 10000;
+          Object.assign(capa, { ancho: o.tam, alto, posicion: pos, rotacion: rot, alFinal: o.alFinal, reiniciar: o.reiniciar });
           if (d) {
-            Object.assign(capa, { ancho: o.tamano, alto: Math.round(f.aspecto * o.tamano * 10000) / 10000,
-              recorte: calcularRecorte(o, d.vw, d.vh, f.aspecto), giro: o.giro });
+            Object.assign(capa, { recorte: calcularRecorte(o, d.vw, d.vh, f.aspecto), giro: o.giro });
             if (o.inicio > 0) capa.inicio = Math.round(o.inicio * 10) / 10;
             if (o.fin != null && o.fin < d.duracion - 0.05) capa.fin = Math.round(o.fin * 10) / 10;
           }
@@ -633,14 +846,12 @@ $('btnGenerar').addEventListener('click', async () => {
           if (o.aparicion === 'fundido' || o.aparicion === 'flotar') capa.aparicion = o.aparicion;
           if (o.aparicion === 'flotar') capa.altura = 0.15;
           if (o.aparicion === 'mesa' || o.aparicion === 'pared')
-            Object.assign(capa, { emerger: true, angulo: o.aparicion === 'mesa' ? 90 : 55, base: -0.35 });
+            Object.assign(capa, { emerger: true, angulo: o.aparicion === 'mesa' ? 90 : 55, base: redondear(o.py - alto / 2) });
           if (o.quitarFondo !== 'ninguno') Object.assign(capa, { quitarFondo: o.quitarFondo, tolerancia: Number(o.tolerancia) || 0.1 });
         }
         if (c.tipo === 'audio') Object.assign(capa, { volumen: Number(o.volumen), repetir: o.repetir, reiniciar: o.reiniciar });
-        if (c.tipo === 'imagen') Object.assign(capa, { ancho: Number(o.ancho) || 1, posicion: `0 0 ${z}` });
-        if (c.tipo === 'modelo') Object.assign(capa, {
-          escala: Number(o.escala) || 0.3, posicion: `0 0 ${z}`,
-          rotacion: o.orientacion === 'mesa' ? '90 0 0' : '0 0 0', animar: o.animar, girar: o.girar });
+        if (c.tipo === 'imagen') Object.assign(capa, { ancho: o.tam, alto: redondear(o.tam * (c.aspecto || 1)), posicion: pos, rotacion: rot });
+        if (c.tipo === 'modelo') Object.assign(capa, { escala: o.tam, posicion: pos, rotacion: rot, animar: o.animar, girar: o.girar });
         if (c.tipo === 'enlace') Object.assign(capa, { texto: o.texto || 'Ver más', url: o.url });
         capas.push(capa);
       });
