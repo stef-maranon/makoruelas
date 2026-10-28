@@ -10,7 +10,8 @@
 <style>
   :root { --acento:#ff5a36; --fondo:#0f0f14; --texto:#f4f1ec; --suave:#a9a6a0; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:var(--fondo); color:var(--texto);
+  /* Fondo transparente: así se ve la cámara detrás del contenido */
+  html,body { margin:0; height:100%; overflow:hidden; background:transparent; color:var(--texto);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   .hidden, .oculto { display:none !important; }
 
@@ -47,8 +48,6 @@
     background:#000c; color:#fff; text-decoration:none; backdrop-filter:blur(6px); }
   #barra a { background:var(--acento); }
 
-  /* MindAR pone video y canvas en el body */
-  body > video, body > canvas { position:fixed !important; }
 </style>
 </head>
 <body>
@@ -241,6 +240,39 @@ function crearCapa(c, id) {
     }
     const medio = { el: v, reiniciar: !!c.reiniciar };
     todosLosMedios.push(medio);
+
+    if (c.emerger === 'flotar') {
+      // Sale de la foto hacia la cámara, paralelo a ella
+      const altura = Number(c.altura ?? 0.15);
+      const capa = document.createElement('a-entity');
+      capa.setAttribute('animation__emerger',
+        `property: position; from: 0 0 0; to: 0 0 ${altura}; dur: ${c.duracion || 1000}; easing: easeOutBack; startEvents: emerger`);
+      capa.setAttribute('animation__crecer',
+        `property: scale; from: 0.9 0.9 0.9; to: ${c.crecer || 1.1} ${c.crecer || 1.1} 1; dur: ${c.duracion || 1000}; easing: easeOutCubic; startEvents: emerger`);
+      capa.appendChild(plano);
+      capa.reiniciarEfecto = () => { capa.setAttribute('position', '0 0 0'); capa.setAttribute('scale', '0.9 0.9 0.9'); };
+      return { el: capa, medio, efecto: capa };
+    }
+
+    if (c.emerger) {
+      // Efecto pop-up: el video se levanta desde la foto como un libro desplegable
+      const angulo = Number(c.angulo ?? 90);
+      const [px, py, pz] = pos.split(/\s+/).map(Number);
+      const bisagra = document.createElement('a-entity');
+      bisagra.setAttribute('position', `${px || 0} ${c.base ?? -0.35} ${pz || 0.01}`);
+      bisagra.setAttribute('rotation', '0 0 0');
+      bisagra.setAttribute('animation__emerger',
+        `property: rotation; from: 0 0 0; to: ${angulo} 0 0; dur: ${c.duracion || 1100}; easing: easeOutBack; startEvents: emerger`);
+      bisagra.setAttribute('animation__crecer',
+        `property: scale; from: 0.2 0.2 0.2; to: 1 1 1; dur: ${c.duracion || 1100}; easing: easeOutCubic; startEvents: emerger`);
+      // El borde inferior del video queda en la bisagra
+      const subir = () => plano.setAttribute('position', `0 ${Number(plano.getAttribute('height')) / 2} 0`);
+      plano.setAttribute('position', `0 ${(c.alto || ancho * 0.5625) / 2} 0`);
+      plano.setAttribute('rotation', '0 0 0');
+      v.addEventListener('loadedmetadata', () => setTimeout(subir, 0));
+      bisagra.appendChild(plano);
+      return { el: bisagra, medio, efecto: bisagra };
+    }
     return { el: plano, medio };
   }
 
@@ -320,12 +352,13 @@ function construirEscena() {
   objetivos.forEach((obj, i) => {
     const ent = document.createElement('a-entity');
     ent.setAttribute('mindar-image-target', `targetIndex: ${i}`);
-    const datos = { medios: [], enlace: null };
+    const datos = { medios: [], enlace: null, efectos: [] };
     (obj.capas || []).forEach((capa, j) => {
       const r = crearCapa(capa, `${i}_${j}`);
       if (r.el) ent.appendChild(r.el);
       if (r.medio) datos.medios.push(r.medio);
       if (r.enlace) datos.enlace = r.enlace;
+      if (r.efecto) datos.efectos.push(r.efecto);
     });
     ent.addEventListener('targetFound', () => alEncontrar(i, datos));
     ent.addEventListener('targetLost', () => alPerder(i, datos));
@@ -361,6 +394,10 @@ function reproducir(medio) {
 
 function alEncontrar(i, datos) {
   visibles.set(i, datos);
+  datos.efectos.forEach((e) => {
+    if (e.reiniciarEfecto) e.reiniciarEfecto(); else e.setAttribute('rotation', '0 0 0');
+    e.emit('emerger');
+  });
   datos.medios.forEach(reproducir);
   actualizarBarra();
 }
@@ -368,6 +405,10 @@ function alEncontrar(i, datos) {
 function alPerder(i, datos) {
   visibles.delete(i);
   datos.medios.forEach((m) => m.el.pause());
+  datos.efectos.forEach((e) => {
+    if (e.reiniciarEfecto) e.reiniciarEfecto();
+    else { e.setAttribute('rotation', '0 0 0'); e.setAttribute('scale', '0.2 0.2 0.2'); }
+  });
   actualizarBarra();
 }
 
