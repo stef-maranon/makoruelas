@@ -103,7 +103,7 @@ AFRAME.registerComponent('animar-modelo', {
 /* ---------- Configuración ---------- */
 const params = new URLSearchParams(location.search);
 const proyecto = (params.get('p') || '').replace(/[^a-zA-Z0-9_-]/g, '');
-const base = `proyectos/${proyecto}/`;
+let base = `proyectos/${proyecto}/`;
 const $ = (id) => document.getElementById(id);
 
 let config = null;
@@ -128,11 +128,17 @@ async function cargar() {
     return mostrarError('Escanea un código QR',
       'Este enlace no indica qué experiencia abrir. Usa el QR o el enlace que te compartieron.');
   }
-  try {
-    const r = await fetch(base + 'config.json', { cache: 'no-cache' });
-    if (!r.ok) throw new Error(r.status);
-    config = await r.json();
-  } catch (e) {
+  // Busca el proyecto en "proyectos/nombre/" y, si no está, en "nombre/"
+  for (const intento of [`proyectos/${proyecto}/`, `${proyecto}/`]) {
+    try {
+      const r = await fetch(intento + 'config.json', { cache: 'no-cache' });
+      if (!r.ok) continue;
+      config = await r.json();
+      base = intento;
+      break;
+    } catch (e) { /* probar la siguiente ruta */ }
+  }
+  if (!config) {
     return mostrarError('No encontramos esta experiencia',
       `Revisa que exista la carpeta "proyectos/${proyecto}" con su config.json.`);
   }
