@@ -1,0 +1,33 @@
+{
+  "titulo": "Maikol",
+  "descripcion": "Maikol siempre está contigo, amor",
+  "maxSimultaneos": 1,
+  "seguimiento": "rapido",
+  "objetivos": [
+    {
+      "nombre": "Foto 1",
+      "foto": "foto1.jpg",
+      "capas": [
+        {
+          "tipo": "video",
+          "src": "foto1-capa1.mp4",
+          "ancho": 1,
+          "alto": 1.3584,
+          "posicion": "0 0 0.36",
+          "rotacion": "0 0 0",
+          "alFinal": "repetir",
+          "reiniciar": true,
+          "recorte": [
+            0.1094,
+            0.1996,
+            0.8906,
+            0.8004
+          ],
+          "giro": 0,
+          "radio": 0.08,
+          "aparicion": "fundido"
+        }
+      ]
+    }
+  ]
+}
